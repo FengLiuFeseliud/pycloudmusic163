@@ -11,14 +11,14 @@ class LoginMusic163(Link):
     def __init__(self, headers=None):
         super().__init__(headers)
         if headers is None:
-            self.set_headers(self.headers)
+            self.headers = self.music163_headers
 
     def __set_cookie(self):
         cookie = "appver=2.7.1.198277; os=pc;"
         for name, value in self.req.cookies.items():
             cookie += '{0}={1};'.format(name, value)
 
-        headers = self.get_headers()
+        headers = self.headers
         headers["cookie"] = cookie
         return Music163(headers), cookie
 
@@ -34,10 +34,10 @@ class LoginMusic163(Link):
         api = MUSIC163_API + "/api/login"
         post_data = {
             "username": email,
-            "password": self.md5(password),
+            "password": self._md5(password),
             "rememberLogin": 'true'
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
             return data["code"]
 
@@ -57,7 +57,7 @@ class LoginMusic163(Link):
             "ctcode": country_code,
             "cellphone": phone
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         return 0 if data["code"] == 200 else data["code"]
 
     def login_cellphone(self, phone, password, captcha=False, country_code="86"):
@@ -72,7 +72,7 @@ class LoginMusic163(Link):
         :return:成功返回Music163对象, cookie 失败返回错误码
         """
         if not captcha:
-            password = self.md5(password)
+            password = self._md5(password)
 
         api = MUSIC163_API + "/api/login/cellphone"
         post_data = {
@@ -81,7 +81,7 @@ class LoginMusic163(Link):
             "captcha" if captcha else "password": password,
             "rememberLogin": 'true'
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
             return data["code"]
 
@@ -98,7 +98,7 @@ class LoginMusic163(Link):
         post_data = {
             "type": 1
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         return data["unikey"], "https://music.163.com/login?codekey="+data["unikey"] if data["code"] == 200 else data["code"]
 
     def login_qr(self, qr_key):
@@ -113,7 +113,7 @@ class LoginMusic163(Link):
             'key': qr_key,
             'type': 1
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 803:
             return data["code"], "", ""
 
@@ -148,10 +148,10 @@ class Music163(Link):
         :return:成功返回user对像 失败返回错误码
         """
         api = MUSIC163_API + "/api/w/nuser/account/get"
-        data = self.link(api, mode="POST")
+        data = self._link(api, mode="POST")
         if data["code"] != 200 or data["profile"] is None:
             return data["code"]
-        return my(self.get_headers(), data)
+        return my(self.headers, data)
 
     def music(self, id_):
         """
@@ -162,10 +162,10 @@ class Music163(Link):
         """
         api = MUSIC163_API + "/api/v3/song/detail"
         post_data = {"c": self.__id_format(id_, dict_str=True)}
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
             return data["code"]
-        return [music(self.get_headers(), music_data) for music_data in data["songs"]]
+        return [music(self.headers, music_data) for music_data in data["songs"]]
 
     def user(self, id_):
         """
@@ -175,8 +175,8 @@ class Music163(Link):
         :return:返回user对像
         """
         api = MUSIC163_API + "/api/v1/user/detail"
-        data = self.link(api + "/%s" % id_, mode="POST")
-        return user(self.get_headers(), data) if data["code"] == 200 else data["code"]
+        data = self._link(api + "/%s" % id_, mode="POST")
+        return user(self.headers, data) if data["code"] == 200 else data["code"]
 
     def playlist(self, id_):
         """
@@ -187,8 +187,8 @@ class Music163(Link):
         """
         api = MUSIC163_API + "/api/v6/playlist/detail"
         post_data = {"id": id_, "n": 100000}
-        data = self.link(api, data=post_data, mode="POST")
-        return playlist(self.get_headers(), data['playlist']) if data["code"] == 200 else data["code"]
+        data = self._link(api, data=post_data, mode="POST")
+        return playlist(self.headers, data['playlist']) if data["code"] == 200 else data["code"]
 
     def artist(self, id_):
         """
@@ -201,8 +201,8 @@ class Music163(Link):
         post_data = {
             "id": id_
         }
-        data = self.link(api, data=post_data, mode="POST")
-        return artist(self.get_headers(), data["data"]['artist']) if data["code"] == 200 else data["code"]
+        data = self._link(api, data=post_data, mode="POST")
+        return artist(self.headers, data["data"]['artist']) if data["code"] == 200 else data["code"]
 
     def album(self, id_):
         """
@@ -213,7 +213,7 @@ class Music163(Link):
         album_data = {
             "id": id_, "name": None, "cover": None
         }
-        return album(self.get_headers(), album_data)
+        return album(self.headers, album_data)
 
     def mv(self, id_):
         """
@@ -226,16 +226,22 @@ class Music163(Link):
         post_data = {
             "id": id_
         }
-        data = self.link(api, data=post_data, mode="POST")
-        return mv(self.get_headers(), data) if data["code"] == 200 else data["code"]
+        data = self._link(api, data=post_data, mode="POST")
+        return mv(self.headers, data) if data["code"] == 200 else data["code"]
 
     def dj(self, id_):
+        """
+        获取电台并实例化dj对像
+
+        :param id_:电台id
+        :return:返回dj对像
+        """
         api = MUSIC163_API + "/api/djradio/v2/get"
         post_data = {
             "id": id_
         }
-        data = self.link(api, data=post_data, mode="POST")
-        return dj(self.get_headers(), data['data']) if data["code"] == 200 else data["code"]
+        data = self._link(api, data=post_data, mode="POST")
+        return dj(self.headers, data['data']) if data["code"] == 200 else data["code"]
 
     def search(self, key, type_=1, page=0, limit=30):
         """
@@ -253,5 +259,5 @@ class Music163(Link):
         post_data = {
             "s": key, "type": type_, "limit": limit, "offset": limit * page, "total": True
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         return data['result'] if data["code"] == 200 else data["code"]

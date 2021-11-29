@@ -20,7 +20,7 @@ class music163_object(Link):
         "R_AL_3_",  # 专辑
         "A_DJ_1_",  # 电台节目
         "R_VI_62_",
-        "A_EV_2_"
+        "A_EV_2_",  # 动态
     ]
 
     def __init__(self, headers):
@@ -36,13 +36,14 @@ class music163_object(Link):
         :param page:页数
         :param limit:一页获取数量
         :param before_time:分页参数,取上一页最后一项的 time 获取下一页数据(获取超过5000条评论的时候需要用到)
+        :param id_: 当传入该值将使用id_作为id (动态id格式 "动态id_发布动态用户id")
         :return:成功返回数据 失败返回错误码
         """
         api = MUSIC163_API + ("/api/v1/resource/hotcomments" if hot else "/api/v1/resource/comments")
         post_data = {
             "rid": self.id, "limit": limit, "offset": limit * page, "beforeTime": before_time
         }
-        data = self.link(api + "/%s%s" % (self.data_type, self.id), data=post_data, mode="POST")
+        data = self._link(api + "/%s%s" % (self.data_type, self.id), data=post_data, mode="POST")
 
         if hot:
             return data['hotComments'] if data["code"] == 200 else data["code"]
@@ -63,7 +64,7 @@ class music163_object(Link):
             "parentCommentId": comment_id, "threadId": "%s%s" % (self.data_type, self.id), "limit": limit,
             "offset": limit * page
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         return data["data"] if data["code"] == 200 else data["code"]
 
     def __comment_set(self, mode, post_data):
@@ -72,7 +73,7 @@ class music163_object(Link):
             "threadId": "%s%s" % (self.data_type, self.id)
         }
         post_data.update(post_data_)
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         return 0 if data["code"] == 200 else data["code"]
 
     def comment_add(self, content):
@@ -80,6 +81,7 @@ class music163_object(Link):
         发送评论
 
         :param content:评论内容
+        :param id_: 当传入该值将使用id_作为id (动态id格式 "动态id_发布动态用户id")
         :return:成功返回0 失败返回错误码
         """
         post_data = {
@@ -92,6 +94,7 @@ class music163_object(Link):
         删除评论
 
         :param comment_id:评论id
+        :param id_: 当传入该值将使用id_作为id (动态id格式 "动态id_发布动态用户id")
         :return:成功返回0 失败返回错误码
         """
         post_data = {
@@ -105,6 +108,7 @@ class music163_object(Link):
 
         :param content:评论内容
         :param comment_id:评论id
+        :param id_: 当传入该值将使用id_作为id (动态id格式 "动态id_发布动态用户id")
         :return:成功返回0 失败返回错误码
         """
         post_data = {
@@ -140,15 +144,15 @@ class music163_object(Link):
         if self.data_type == "R_SO_4_":
             raise Erorr.Music163ObjectException()
 
-        data = self.link(subscribe_mode[self.data_type], data=post_data, mode="POST")
+        data = self._link(subscribe_mode[self.data_type], data=post_data, mode="POST")
         return 0 if data["code"] == 200 else data["code"]
 
 
 # 迭代工具类
-class music_list_fun(Link):
+class list_fun:
 
-    def __init__(self, headers):
-        super().__init__(headers)
+    def __init__(self):
+        self.headers = None
         # 存储music数据
         self.music_list = None
         self.data_len_ = None
@@ -164,7 +168,7 @@ class music_list_fun(Link):
 
         data = self.music_list[self.index]
         self.index += 1
-        return music(self.get_headers(), data)
+        return music(self.headers, data)
 
 
 # music对象基础
@@ -176,7 +180,7 @@ class music_in(music163_object):
         self.not_download = False
 
     def _download_music(self, api, post_data, download_path, son_path="", chunk_size=1024, download_callback=None):
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
             return data["code"]
 
@@ -196,7 +200,7 @@ class music_in(music163_object):
             def download_callback(req, path):
                 return "%s_%s.mp3" % (self.id, self.name[0]), None
 
-        self.download(download_path, [son_path, [music_url]], download_callback, chunk_size=chunk_size)
+        self._download(download_path, [son_path, [music_url]], download_callback, chunk_size=chunk_size)
         return 0
 
     def play(self, download_path, son_path="", chunk_size=1024, download_callback=None, quality=None):
@@ -213,22 +217,23 @@ class music_in(music163_object):
 
 
 # 用户 user对象
-class user(music_list_fun, Link):
+class user(Link, list_fun):
 
     def __init__(self, headers, user_data):
         super().__init__(headers)
+        _user_data = user_data["profile"] if "profile" in user_data else user_data
         # 用户uid
-        self.id = user_data["profile"]["userId"]
+        self.id = _user_data["userId"]
         # 用户名称
-        self.name = user_data["profile"]["nickname"]
+        self.name = _user_data["nickname"]
         # 用户签名
-        self.signature = user_data["profile"]["signature"]
+        self.signature = _user_data["signature"]
         # 用户等级
         self.level = user_data["level"] if "level" in user_data else None
         # 头像
-        self.cover = user_data["profile"]['avatarUrl']
+        self.cover = _user_data['avatarUrl']
         # 会员 0 无
-        self.vip = user_data["profile"]["vipType"]
+        self.vip = _user_data["vipType"]
 
     def playlist(self, page=0, limit=30):
         """
@@ -242,10 +247,10 @@ class user(music_list_fun, Link):
         post_data = {
             "uid": self.id, "limit": limit, "offset": limit * page, "includeVideo": True
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
             return data["code"]
-        return [playlist(self.get_headers(), PlayList) for PlayList in data['playlist']]
+        return [playlist(self.headers, PlayList) for PlayList in data['playlist']]
 
     def like_music(self):
         """
@@ -260,7 +265,7 @@ class user(music_list_fun, Link):
 
         api = MUSIC163_API + "/api/v6/playlist/detail"
         post_data = {"id": like_list_id, "n": 100000}
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
             return data["code"]
         self.music_list = data['playlist']["tracks"]
@@ -278,21 +283,15 @@ class user(music_list_fun, Link):
         post_data = {
             "uid": self.id, "type": 0 if type_ else 1
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         if data['code'] != 200:
             return data['code']
 
-        if not music_object:
-            return data["allData"] if type_ else data["weekData"]
+        if music_object:
+            for music_ in data["allData"] if type_ else data["weekData"]:
+                music_["song"] = music(self.headers, music_["song"])
 
-        list_data = []
-        for music_ in data["allData"] if type_ else data["weekData"]:
-            list_data.append({
-                "play_count": music_["playCount"],
-                "score": music_["score"],
-                "song": music(self.get_headers(), music_["song"])
-            })
-        return list_data
+        return data["allData"] if type_ else data["weekData"]
 
 
 # 当前使用cookie的用户 my对象
@@ -316,7 +315,7 @@ class my(user):
         post_data = {
             "type": 0 if type_ else 1
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         return 0 if data["code"] == 200 else data["code"]
 
     def recommend_playlist(self):
@@ -326,7 +325,7 @@ class my(user):
         :return:成功返回0 失败返回错误码
         """
         api = MUSIC163_API + "/api/v3/discovery/recommend/songs"
-        data = self.link(api, mode="POST")
+        data = self._link(api, mode="POST")
         if data["code"] != 200:
             return data["code"]
         self.music_list = data["data"]["dailySongs"]
@@ -339,14 +338,335 @@ class my(user):
         :return:成功返回数据 失败返回错误码
         """
         api = MUSIC163_API + "/api/v1/discovery/recommend/resource"
-        data = self.link(api, mode="POST")
+        data = self._link(api, mode="POST")
         return data["recommend"] if data["code"] == 200 else data["code"]
 
     def fm(self):
         """
         私人fm 实例化一个fm对象 并返回
         """
-        return fm(self.get_headers())
+        return fm(self.headers)
+
+    def message(self):
+        """
+        私信 实例化一个message对象 并返回
+        """
+        return message(self.headers, self.id)
+
+    def event(self, user_id=None):
+        """
+        动态 实例化一个event对象 并返回\n
+        指定event.id的用户id 默认指定当前cookie用户
+        """
+        user_id = self.id if user_id is None else user_id
+        return event(self.headers, user_id)
+
+
+# 私信 message对象
+class message(Link):
+
+    def __init__(self, headers, user_id):
+        super().__init__(headers)
+        self.id = user_id
+
+    def comments(self, before_time=-1, limit=30):
+        """
+        获取评论
+        :param before_time:取上一页最后一个歌单的 updateTime 获取下一页数据
+        :param limit:一页获取量
+        :return:成功返回数据 失败返回错误码
+        """
+        api = MUSIC163_API + "/api/v1/user/comments"
+        post_data = {
+            "beforeTime": before_time, "limit": limit, "total": 'true', "uid": self.id
+        }
+        data = self._link(api + "/%s" % self.id, data=post_data, mode="POST")
+        return data['comments'] if data["code"] == 200 else data["code"]
+
+    def forwards(self, page=0, limit=30):
+        """
+        获取@我
+        :param page:页数
+        :param limit:一页获取量
+        :return:成功返回数据 失败返回错误码
+        """
+        api = MUSIC163_API + "/api/forwards/get"
+        post_data = {
+            "offset": limit * page, "limit": limit, "total": 'true'
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data["forwards"] if data["code"] == 200 else data["code"]
+
+    def notices(self, last_time=-1, limit=30):
+        """
+        获取通知
+        :param last_time:传入上一次返回结果的 time,将会返回下一页的数据
+        :param limit:一页获取量
+        :return:成功返回数据 失败返回错误码
+        """
+        api = MUSIC163_API + "/api/msg/notices"
+        post_data = {
+            "limit": limit, "time": last_time
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data['notices'] if data["code"] == 200 else data["code"]
+
+    def private_new(self):
+        """
+        获取最接近联系人
+        :return:成功返回数据 失败返回错误码
+        """
+        api = MUSIC163_API + "/api/msg/recentcontact/get"
+        data = self._link(api, mode="POST")
+        return data["data"]["follow"] if data["code"] == 200 else data["code"]
+
+    def __set_msgs(self, data):
+        for msg in data:
+            msg["fromUser"] = user(self.headers, msg["fromUser"])
+            msg["toUser"] = user(self.headers, msg["toUser"])
+
+        return data
+
+    def private_history(self, id_, page=0, limit=30, user_object=True):
+        """
+        获取指定用户历史私信
+        :param id_:用户id
+        :param page:页数
+        :param limit:一页获取量
+        :param user_object:True 将user转为user对象返回 False 将user以json返回
+        :return:成功返回数据 失败返回错误码
+        """
+        api = MUSIC163_API + "/api/msg/private/history"
+        post_data = {
+            "userId": id_, "offset": limit * page, "limit": limit, "total": 'true'
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        if data["code"] != 200:
+            return data["code"]
+
+        if user_object:
+            data['msgs'] = self.__set_msgs(data['msgs'])
+
+        return data['msgs']
+
+    def private(self, page=0, limit=30, user_object=True):
+        """
+        获取私信列表
+        :param page:页数
+        :param limit:一页获取量
+        :param user_object:True 将user转为user对象返回 False 将user以json返回
+        :return:成功返回数据 失败返回错误码
+        """
+        api = MUSIC163_API + "/api/msg/private/users"
+        post_data = {
+            "offset": limit * page, "limit": limit, "total": 'true'
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        if data["code"] != 200:
+            return data["code"]
+
+        if user_object:
+            data['msgs'] = self.__set_msgs(data['msgs'])
+
+        return data['msgs']
+
+    def __send(self, msg, to_user_id, type_, id_=0, user_object=True):
+        to_user_id = ','.join(to_user_id) if type(to_user_id) == list else str(to_user_id)
+        api = MUSIC163_API + "/api/msg/private/send"
+        post_data = {
+            "msg": msg, "type": type_, "userIds": '[' + to_user_id + ']',
+        }
+        if type_ != "text":
+            post_data.update({"id": id_})
+        data = self._link(api, data=post_data, mode="POST")
+        if data["code"] != 200:
+            return data["code"]
+
+        if user_object:
+            data['newMsgs'] = self.__set_msgs(data['newMsgs'])
+
+        return data['newMsgs']
+
+    def send(self, msg, to_user_id, user_object=True):
+        """
+        发送私信
+        :param msg:要发送的信息
+        :param to_user_id:发送给的用户id 多个使用列表
+        :param user_object:True 将user转为user对象返回 False 将user以json返回
+        :return:成功返回第一位发送给的用户历史私信 失败返回错误码
+        """
+        return self.__send(msg, to_user_id, "text", user_object=user_object)
+
+    def send_music(self, msg, id_, to_user_id, user_object=True):
+        """
+        发送私信 带歌曲 id_:歌曲id (其他参数查看send())
+        """
+        return self.__send(msg, to_user_id, "song", id_, user_object)
+
+    def send_album(self, msg, id_, to_user_id, user_object=True):
+        """
+        发送私信 带专辑 id_:专辑id (其他参数查看send())
+        """
+        return self.__send(msg, to_user_id, "album", id_, user_object)
+
+    def send_playlist(self, msg, id_, to_user_id, user_object=True):
+        """
+        发送私信 带歌单 不能发送重复的歌单 id_:歌单id (其他参数查看send())
+        """
+        return self.__send(msg, to_user_id, "playlist", id_, user_object)
+
+
+# 动态 event对象
+class event(Link, list_fun):
+
+    def __init__(self, headers, user_id):
+        super().__init__(headers)
+        self.id = user_id
+
+    def __next__(self):
+        if self.index == self.data_len_ - 1:
+            raise StopIteration
+
+        data = self.music_list[self.index]
+        self.index += 1
+        return _event(self.headers, data)
+
+    def get(self, last_time=-1, limit=30):
+        """
+        获取self.id的用户动态
+        :param last_time:传入上一次返回结果的 time,将会返回下一页的数据
+        :param limit:一页获取量
+        :return:成功返回数据 失败返回错误码
+        """
+        api = MUSIC163_API + "/api/event/get"
+        post_data = {
+            "limit": limit, "time": last_time, "getcounts": "true", "total": "true"
+        }
+        data = self._link(api + "/%s" % self.id, data=post_data, mode="POST")
+        if data["code"] != 200:
+            return data["code"]
+
+        self.music_list = data['events']
+        return 0
+
+    def del_(self, ev_id):
+        """
+        删除cookie用户动态
+        :param ev_id:动态id
+        :return:成功返回0 失败返回错误码
+        """
+        api = MUSIC163_API + "/api/event/delete"
+        post_data = {
+            "id": ev_id
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return 0 if data["code"] == 200 else data["code"]
+
+    def __send(self, msg, id_="", type_="noresource"):
+        api = MUSIC163_API + "/api/share/friends/resource"
+        post_data = {
+            "msg": msg, "id": id_, "type": type_
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return 0 if data["code"] == 200 else data["code"]
+
+    def send(self, msg):
+        """
+        使用cookie用户发送动态
+        :param msg:内容，140 字限制，支持 emoji，@用户名
+        :return:成功返回0 失败返回错误码
+        """
+        return self.__send(msg)
+
+    def send_music(self, msg, id_):
+        """
+        使用cookie用户发送动态 带歌曲 id_:歌曲id (其他参数查看send())
+        """
+        return self.__send(msg, id_, "song")
+
+    def send_playlist(self, msg, id_):
+        """
+        使用cookie用户发送动态 带歌单 id_:歌单id (其他参数查看send())
+        """
+        return self.__send(msg, id_, "playlist")
+
+    def send_mv(self, msg, id_):
+        """
+        使用cookie用户发送动态 带mv id_:mv id (其他参数查看send())
+        """
+        return self.__send(msg, id_, "mv")
+
+    def send_dj(self, msg, id_):
+        """
+        使用cookie用户发送动态 带电台 id_:电台id (其他参数查看send())
+        """
+        return self.__send(msg, id_, "djprogram")
+
+    def send_dj_music(self, msg, id_):
+        """
+        使用cookie用户发送动态 带电台节目 id_:电台节目id (其他参数查看send())
+         """
+        return self.__send(msg, id_, "djradio")
+
+
+# 单动态 _event对象
+class _event(music163_object):
+
+    __event_type = {
+        18: '分享单曲',
+        19: '分享专辑',
+        17: '分享电台节目',
+        28: '分享电台节目',
+        22: '转发',
+        39: '发布视频',
+        35: '分享歌单',
+        13: '分享歌单',
+        24: '分享专栏文章',
+        41: '分享视频',
+        21: '分享视频'
+    }
+
+    def __init__(self, headers, event_data):
+        super().__init__(headers)
+        self.data_type = self.data_type[6]
+        # 动态发布用户
+        self.user = event_data["user"]
+        self.user_str = self.user["nickname"]
+        # 动态内容
+        self.msg = event_data["json"]
+        # 动态图片
+        self.pics = event_data["pics"]
+        # 动态话题
+        self.act_name = event_data["actName"]
+        # 动态类型
+        self.type = event_data["type"]
+        self.type_str = self.__event_type[self.type]
+        # 动态id
+        self.id = f"{event_data['id']}_{self.user['userId']}"
+        # 动态id(ev_id)
+        self.ev_id = event_data['id']
+        # 动态分享数
+        self.share_count = event_data["info"]["shareCount"]
+        # 动态评论数
+        self.comment_count = event_data["info"]["commentCount"]
+        # 动态点赞数
+        self.like_count = event_data["info"]["likedCount"]
+        # 动态时间
+        self.event_time = event_data["eventTime"]
+
+    def forward(self, msg):
+        """
+        指定动态转发到cookie用户
+        :param msg:内容
+        :param ev_id:转发动态id
+        :return:成功返回0 失败返回错误码
+        """
+        api = MUSIC163_API + "/api/event/forward"
+        post_data = {
+            "forwards": msg, "id": self.ev_id, "eventUserId": self.id
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return 0 if data["code"] == 200 else data["code"]
 
 
 # 私人fm fm对象
@@ -362,7 +682,7 @@ class fm(Link):
         :return:成功返回music对像列表 失败返回错误码
         """
         api = MUSIC163_API + "/api/v1/radio/get"
-        data = self.link(api, mode="POST")
+        data = self._link(api, mode="POST")
         return data["data"] if data["code"] == 200 else data["code"]
 
     def write(self, id_):
@@ -376,12 +696,12 @@ class fm(Link):
         post_data = {
             "songId": id_
         }
-        data = self.link(api + "?alg=RT&songId=%s&time=%s" % (id_, int(time.time())), data=post_data, mode="POST")
+        data = self._link(api + "?alg=RT&songId=%s&time=%s" % (id_, int(time.time())), data=post_data, mode="POST")
         return 0, data['count'] if data["code"] == 200 else data["code"]
 
 
 # 歌手 artist对象
-class artist(music_list_fun, Link):
+class artist(Link, list_fun):
 
     def __init__(self, headers, artist_data):
         super().__init__(headers)
@@ -419,7 +739,7 @@ class artist(music_list_fun, Link):
             "private_cloud": True,
             "work_type": 1
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
             return data["code"]
         self.music_list = data['songs']
@@ -435,7 +755,7 @@ class artist(music_list_fun, Link):
         post_data = {
             "id": self.id
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
             return data["code"]
         self.music_list = data["songs"]
@@ -452,12 +772,12 @@ class artist(music_list_fun, Link):
         post_data = {
             "limit": limit, "offset": limit * page, "total": True,
         }
-        data = self.link(api + "/%s" % self.id, data=post_data, mode="POST")
+        data = self._link(api + "/%s" % self.id, data=post_data, mode="POST")
         return data["hotAlbums"] if data["code"] == 200 else data["code"]
 
 
 # 歌单 playlist对象
-class playlist(music_list_fun, music163_object):
+class playlist(music163_object, list_fun):
 
     def __init__(self, headers, playlist_data):
         super().__init__(headers)
@@ -494,7 +814,7 @@ class playlist(music_list_fun, music163_object):
         post_data = {
             "op": mode, "pid": self.id, "trackIds": str(music_id), "imme": "true"
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         return data
 
     def add(self, music_id):
@@ -519,7 +839,7 @@ class playlist(music_list_fun, music163_object):
 
 
 # 专辑 album对象
-class album(music_list_fun, music163_object):
+class album(music163_object, list_fun):
 
     def __init__(self, headers, album_data):
         super().__init__(headers)
@@ -537,7 +857,7 @@ class album(music_list_fun, music163_object):
         :return:成功返回0 失败返回错误码
         """
         api = MUSIC163_API + "/api/v1/album"
-        data = self.link(api + "/%s" % self.id, mode="POST")
+        data = self._link(api + "/%s" % self.id, mode="POST")
         if data["code"] != 200:
             return data["code"]
         self.music_list = data["songs"]
@@ -583,7 +903,7 @@ class music(music_in):
         post_data = {
             "songid": self.id, "limit": limit, "offset": 0,
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         return data
 
     def similar(self, limit=50):
@@ -615,7 +935,7 @@ class music(music_in):
         post_data = {
             "alg": 'itembased', "trackId": self.id, "like": like, "time": '3'
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         return 0 if data["code"] == 200 else data["code"]
 
     def lyric(self):
@@ -629,7 +949,7 @@ class music(music_in):
         post_data = {
             "id": self.id, "lv": -1, "kv": -1, "tv": -1,
         }
-        code, data = 0, self.link(api, data=post_data, mode="POST")
+        code, data = 0, self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
             return data["code"]
 
@@ -676,7 +996,7 @@ class music(music_in):
         """
         实例化该对像专辑album对像 并返回album对像
         """
-        return album(self.get_headers(), self.album_data)
+        return album(self.headers, self.album_data)
 
     def mv(self):
         """
@@ -690,8 +1010,8 @@ class music(music_in):
         post_data = {
             "id": self.mv_id
         }
-        data = self.link(api, data=post_data, mode="POST")
-        return mv(self.get_headers(), data) if data["code"] == 200 else data["code"]
+        data = self._link(api, data=post_data, mode="POST")
+        return mv(self.headers, data) if data["code"] == 200 else data["code"]
 
 
 # mv mv对象
@@ -745,7 +1065,7 @@ class dj_music(music_in):
 
 
 # 电台 dj对象
-class dj(music_list_fun, Link):
+class dj(Link, list_fun):
 
     def __init__(self, headers, dj_data):
         super().__init__(headers)
@@ -778,14 +1098,14 @@ class dj(music_list_fun, Link):
 
         data = self.music_list[self.index]
         self.index += 1
-        return dj_music(self.get_headers(), data)
+        return dj_music(self.headers, data)
 
     def music(self, page=0, limit=30, asc=False):
         api = MUSIC163_API + "/api/dj/program/byradio"
         post_data = {
             "radioId": self.id, "limit": limit, "offset": limit * page, "asc": asc
         }
-        data = self.link(api, data=post_data, mode="POST")
+        data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
             return data["code"]
 

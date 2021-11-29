@@ -6,7 +6,7 @@ import requests
 class Link:
 
     # music163通用请求头
-    headers = {
+    music163_headers = {
         'Accept': '*/*',
         'Accept-Language': 'zh-CN,zh;q=0.8,gl;q=0.6,zh-TW;q=0.4',
         'Connection': 'keep-alive',
@@ -19,25 +19,16 @@ class Link:
     # md5对象
     __hl = hashlib.md5()
     # 字符编码
-    __encoding = "utf-8"
+    encoding = "utf-8"
     # 一次请求的requests对像
     req = None
 
     def __init__(self, headers):
-        self.__headers = headers
+        self.headers = headers
 
-    def set_headers(self, headers):
-        self.__headers = headers
-
-    def get_headers(self):
-        return self.__headers
-
-    def set_encoding(self, encoding):
-        self.__encoding = encoding
-
-    def cookie_key(self, key):
+    def _cookie_key(self, key):
         cookie_key_ = {}
-        for key_ in self.__headers["cookie"].split('; '):
+        for key_ in self.headers["cookie"].split('; '):
             key_data = key_.split("=")
             if key.count(key_data[0]) != 0:
                 if len(key) == 1:
@@ -46,24 +37,25 @@ class Link:
 
         return cookie_key_
 
-    def md5(self, str_):
+    def _md5(self, str_):
         self.__hl.update(str_.encode(encoding='utf-8'))
         return self.__hl.hexdigest()
 
-    def link(self, api, mode="GET", data=None, files=None, json=True):
+    def _link(self, api, mode="GET", data=None, files=None, json=True):
         if mode == "GET":
-            with requests.get(api, headers=self.__headers, data=data, files=files) as req:
-                req.encoding = self.__encoding
+            with requests.get(api, headers=self.headers, data=data, files=files) as req:
+                req.encoding = self.encoding
                 data = req.json() if json else req.text
         elif mode == "POST":
-            with requests.post(api, headers=self.__headers, data=data, files=files) as req:
-                req.encoding = self.__encoding
+            with requests.post(api, headers=self.headers, data=data, files=files) as req:
+                req.encoding = self.encoding
                 data = req.json() if json else req.text
 
         self.req = req
         return data
 
-    def download(self, download_path, download_list, download_callback, chunk_size=1024, file_callback=None):
+    @staticmethod
+    def _download(download_path, download_list, download_callback, chunk_size=1024, file_callback=None):
         """
         下载
 
