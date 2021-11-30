@@ -36,7 +36,6 @@ class music163_object(Link):
         :param page:页数
         :param limit:一页获取数量
         :param before_time:分页参数,取上一页最后一项的 time 获取下一页数据(获取超过5000条评论的时候需要用到)
-        :param id_: 当传入该值将使用id_作为id (动态id格式 "动态id_发布动态用户id")
         :return:成功返回数据 失败返回错误码
         """
         api = MUSIC163_API + ("/api/v1/resource/hotcomments" if hot else "/api/v1/resource/comments")
@@ -44,11 +43,13 @@ class music163_object(Link):
             "rid": self.id, "limit": limit, "offset": limit * page, "beforeTime": before_time
         }
         data = self._link(api + "/%s%s" % (self.data_type, self.id), data=post_data, mode="POST")
+        if data["code"] == 200:
+            return data["code"]
 
-        if hot:
-            return data['hotComments'] if data["code"] == 200 else data["code"]
-        else:
-            return data['comments'] if data["code"] == 200 else data["code"]
+        if 'hotComments' in data:
+            return data['hotComments']
+
+        return data['comments']
 
     def comment_floor(self, comment_id, page=0, limit=20):
         """
@@ -81,7 +82,6 @@ class music163_object(Link):
         发送评论
 
         :param content:评论内容
-        :param id_: 当传入该值将使用id_作为id (动态id格式 "动态id_发布动态用户id")
         :return:成功返回0 失败返回错误码
         """
         post_data = {
@@ -94,7 +94,6 @@ class music163_object(Link):
         删除评论
 
         :param comment_id:评论id
-        :param id_: 当传入该值将使用id_作为id (动态id格式 "动态id_发布动态用户id")
         :return:成功返回0 失败返回错误码
         """
         post_data = {
@@ -108,7 +107,6 @@ class music163_object(Link):
 
         :param content:评论内容
         :param comment_id:评论id
-        :param id_: 当传入该值将使用id_作为id (动态id格式 "动态id_发布动态用户id")
         :return:成功返回0 失败返回错误码
         """
         post_data = {
