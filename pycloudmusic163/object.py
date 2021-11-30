@@ -18,8 +18,8 @@ class music163_object(Link):
         "R_MV_5_",  # mv
         "A_PL_0_",  # 歌单
         "R_AL_3_",  # 专辑
-        "A_DJ_1_",  # 电台节目
-        "R_VI_62_",
+        "A_DJ_1_",  # 电台
+        "R_VI_62_",  # 视频
         "A_EV_2_",  # 动态
     ]
 
@@ -27,6 +27,102 @@ class music163_object(Link):
         super().__init__(headers)
         self.id = None
         self.name = None
+
+    @staticmethod
+    def set_list_str(list_, and_="/"):
+        data_str = ""
+        for data in list_:
+            data_str += "%s%s" % (data, and_)
+        return data_str.rstrip(and_)
+
+    def subscribe(self, in_):
+        """
+        对像 收藏/取消收藏
+
+        :param in_:True 收藏 False 取消收藏
+        :return:成功返回0 失败返回错误码
+        """
+
+        subscribe_mode = {
+            "A_PL_0_": (MUSIC163_API + "/api/playlist" + ('/subscribe' if in_ else '/unsubscribe'),
+                        {
+                            "id": self.id
+                        }
+                        ),
+            "R_AL_3_": (MUSIC163_API + "/api/album" + ("/sub" if in_ else "/unsub"),
+                        {
+                            "id": self.id
+                        }
+                        ),
+            "R_MV_5_": (MUSIC163_API + "/api/mv" + ("/sub" if in_ else "/unsub"),
+                        {
+                            "mvId": self.id,
+                            "mvIds": '["' + self.id + '"]',
+                        }
+                        ),
+            "artist": (MUSIC163_API + "/api/artist" + ("/sub" if in_ else "/unsub"),
+                       {
+                           "artistId": self.id,
+                           "artistIds": '["' + self.id + '"]'
+                       }
+                       )
+        }
+
+        if self.data_type not in subscribe_mode:
+            raise Erorr.Music163ObjectException()
+
+        api, post_data = subscribe_mode[self.data_type]
+        data = self._link(api, data=post_data, mode="POST")
+        return 0 if data["code"] == 200 else data["code"]
+
+    def _similar(self, api, post_data):
+        return self._link(api, data=post_data, mode="POST")
+
+    def similar(self):
+        """
+        该对象的相似
+
+        :return:成功返回数据 失败返回错误码
+        """
+        similar_mode = {
+            "R_SO_4_": (MUSIC163_API + "/api/v1/discovery/simiSong",
+                        {
+                            "songid": self.id, "limit": 50, "offset": 0,
+                        }
+                        ),
+            "R_MV_5_": (MUSIC163_API + "/api/discovery/simiMV",
+                        {
+                            "mvid": self.id
+                        }
+                        ),
+            "artist": (MUSIC163_API + "/api/discovery/simiArtist",
+                       {
+                           "artistid": self.id,
+                       }
+                       )
+        }
+        if self.data_type not in similar_mode:
+            raise TypeError("歌单无法直接获取相似 请通过歌曲/该对象不支持获取相似")
+
+        api, post_data = similar_mode[self.data_type]
+        return self._similar(api, post_data)
+
+
+class comment(Link):
+    # 数据类型
+    data_type = [
+        "R_SO_4_",  # 歌曲
+        "R_MV_5_",  # mv
+        "A_PL_0_",  # 歌单
+        "R_AL_3_",  # 专辑
+        "A_DJ_1_",  # 电台
+        "R_VI_62_",  # 视频
+        "A_EV_2_",  # 动态
+    ]
+
+    def __init__(self, headers):
+        super().__init__(headers)
+        self.id = None
 
     def comment(self, hot=True, page=0, limit=20, before_time=0):
         """
@@ -43,7 +139,7 @@ class music163_object(Link):
             "rid": self.id, "limit": limit, "offset": limit * page, "beforeTime": before_time
         }
         data = self._link(api + "/%s%s" % (self.data_type, self.id), data=post_data, mode="POST")
-        if data["code"] == 200:
+        if data["code"] != 200:
             return data["code"]
 
         if 'hotComments' in data:
@@ -114,36 +210,6 @@ class music163_object(Link):
             "content": content
         }
         return self.__comment_set("reply", post_data)
-
-    @staticmethod
-    def set_list_str(list_, and_="/"):
-        data_str = ""
-        for data in list_:
-            data_str += "%s%s" % (data, and_)
-        return data_str.rstrip(and_)
-
-    def subscribe(self, in_):
-        """
-        对像 收藏/取消收藏
-
-        :param in_:True 收藏 False 取消收藏
-        :return:成功返回0 失败返回错误码
-        """
-
-        subscribe_mode = {
-            "A_PL_0_": MUSIC163_API + "/api/playlist" + ('/subscribe' if in_ else '/unsubscribe'),
-            "R_AL_3_": MUSIC163_API + "/api/album" + ("/sub" if in_ else "/unsub"),
-        }
-
-        api, post_data = "", {
-            "id": self.id
-        }
-
-        if self.data_type == "R_SO_4_":
-            raise Erorr.Music163ObjectException()
-
-        data = self._link(subscribe_mode[self.data_type], data=post_data, mode="POST")
-        return 0 if data["code"] == 200 else data["code"]
 
 
 # 迭代工具类
@@ -608,8 +674,7 @@ class event(Link, list_fun):
 
 
 # 单动态 _event对象
-class _event(music163_object):
-
+class _event(music163_object, comment):
     __event_type = {
         18: '分享单曲',
         19: '分享专辑',
@@ -699,10 +764,11 @@ class fm(Link):
 
 
 # 歌手 artist对象
-class artist(Link, list_fun):
+class artist(music163_object, list_fun):
 
     def __init__(self, headers, artist_data):
         super().__init__(headers)
+        self.data_type = "artist"
         # 歌手id
         self.id = artist_data["id"]
         # 歌手
@@ -863,7 +929,7 @@ class album(music163_object, list_fun):
 
 
 # 歌曲 music对象
-class music(music_in):
+class music(music_in, comment):
 
     def __init__(self, headers, music_data):
         super().__init__(headers)
@@ -897,30 +963,25 @@ class music(music_in):
         # True时获取完成资源链接后直接返回(不进行下载)
         self.not_download = False
 
-    def __similar(self, api, limit=50):
-        post_data = {
-            "songid": self.id, "limit": limit, "offset": 0,
-        }
-        data = self._link(api, data=post_data, mode="POST")
-        return data
-
-    def similar(self, limit=50):
-        """
-        该music对象的相似歌曲
-
-        :param limit:
-        :return:成功返回数据 失败返回错误码
-        """
-        data = self.__similar(MUSIC163_API + "/api/v1/discovery/simiSong", limit)
-        return data['songs'] if data["code"] == 200 else data["code"]
-
-    def similar_playlist(self, limit=50):
+    def similar_playlist(self):
         """
         该music对象的相似歌单
-        参数参考similar
         """
-        data = self.__similar(MUSIC163_API + "/api/discovery/simiPlaylist", limit)
+        post_data = {
+            "songid": self.id, "limit": 50, "offset": 0,
+        }
+        data = self._similar(MUSIC163_API + "/api/discovery/simiPlaylist", post_data)
         return data['playlists'] if data["code"] == 200 else data["code"]
+
+    def similar_user(self):
+        """
+        最近5个听了这music对象的用户
+        """
+        post_data = {
+            "songid": self.id, "limit": 50, "offset": 0,
+        }
+        data = self._similar(MUSIC163_API + "/api/discovery/simiUser", post_data)
+        return data if data["code"] == 200 else data["code"]
 
     def like(self, like):
         """
@@ -1013,7 +1074,7 @@ class music(music_in):
 
 
 # mv mv对象
-class mv(music163_object):
+class mv(music163_object, comment):
 
     def __init__(self, headers, mv_data):
         super().__init__(headers)
@@ -1044,10 +1105,36 @@ class mv(music163_object):
         self.quality = mv_data["data"]["brs"]
         # 发布时间
         self.publish_time = mv_data["data"]["publishTime"]
+        # True时获取完成资源链接后直接返回(不进行下载)
+        self.not_download = False
+
+    def play(self, download_path, son_path="", chunk_size=1024, download_callback=None, quality=1080):
+        """
+        获取播放该mv对象指定的视频文件\n
+        参数参考music_download
+        """
+        api = MUSIC163_API + "/api/song/enhance/play/mv/url"
+        post_data = {
+            "id": self.id, "r": quality
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        if data["code"] != 200:
+            return data["code"]
+
+        url = data["data"]["url"]
+        if self.not_download:
+            return url
+
+        if download_callback is None:
+            def download_callback(req, path):
+                return "%s_%s.mp4" % (self.id, self.name), None
+
+        self._download(download_path, [son_path, [url]], download_callback, chunk_size=chunk_size)
+        return 0
 
 
 # 电台歌曲 dj_music对象
-class dj_music(music_in):
+class dj_music(music_in, comment):
 
     def __init__(self, headers, dj_music_data):
         super().__init__(headers)
@@ -1063,7 +1150,7 @@ class dj_music(music_in):
 
 
 # 电台 dj对象
-class dj(Link, list_fun):
+class dj(music163_object, list_fun):
 
     def __init__(self, headers, dj_data):
         super().__init__(headers)
