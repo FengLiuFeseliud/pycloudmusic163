@@ -1,4 +1,5 @@
 import time
+import pycloudmusic163
 from pycloudmusic163.py_API import Link
 from pycloudmusic163 import Erorr
 
@@ -298,6 +299,7 @@ class user(Link, list_fun):
         self.cover = _user_data['avatarUrl']
         # 会员 0 无
         self.vip = _user_data["vipType"]
+        self.like_playlist_id = None
 
     def playlist(self, page=0, limit=30):
         """
@@ -316,23 +318,25 @@ class user(Link, list_fun):
             return data["code"]
         return [playlist(self.headers, PlayList) for PlayList in data['playlist']]
 
+    def _get_like_playlist_id(self):
+        if self.like_playlist_id is None:
+            data = self.playlist(limit=1)
+            if type(data) == int:
+                return data
+            self.like_playlist_id = data[0].id
+        return self.like_playlist_id
+
     def like_music(self):
         """
         获取该对象喜欢的歌曲 保存至self.music_list
 
         :return:成功返回0 失败返回错误码
         """
-        data = self.playlist(limit=1)
-        if type(data) == int:
-            return data
-        like_list_id = data[0].id
-
-        api = MUSIC163_API + "/api/v6/playlist/detail"
-        post_data = {"id": like_list_id, "n": 100000}
-        data = self._link(api, data=post_data, mode="POST")
-        if data["code"] != 200:
-            return data["code"]
-        self.music_list = data['playlist']["tracks"]
+        like_playlist_id = self._get_like_playlist_id()
+        playlist_ = pycloudmusic163.Music163(self.headers).playlist(like_playlist_id)
+        if type(playlist_) == int:
+            return playlist_
+        self.music_list = playlist_.music_list
         return 0
 
     def record(self, type_=True, music_object=True):
@@ -405,6 +409,34 @@ class my(user):
         data = self._link(api, mode="POST")
         return data["recommend"] if data["code"] == 200 else data["code"]
 
+    def playmode_intelligence(self, music_id, sid=None, playlist_id=None):
+        """
+        心动模式/智能播放 保存至self.music_list
+
+        :param music_id:歌曲id
+        :param sid:可选 要开始播放的歌曲的id
+        :param playlist_id:歌单id 默认使用喜欢的歌曲歌单
+        :return:成功返回0 失败返回错误码
+        """
+        if playlist_id is None:
+            playlist_id = self._get_like_playlist_id()
+            if playlist_id < 1000:
+                return playlist_id
+
+        api = MUSIC163_API + "/api/playmode/intelligence/list"
+        post_data = {
+            "songId": music_id,
+            "playlistId": playlist_id,
+            'type': 'fromPlayOne',
+            "startMusicId": sid if sid is not None else music_id,
+            "count": 1,
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        if data["code"] != 200:
+            return data["code"]
+        self.music_list = [music_data["songInfo"] for music_data in data["data"]]
+        return 0
+
     def fm(self):
         """
         私人fm 实例化一个fm对象 并返回
@@ -417,13 +449,11 @@ class my(user):
         """
         return message(self.headers, self.id)
 
-    def event(self, user_id=None):
+    def event(self):
         """
-        动态 实例化一个event对象 并返回\n
-        指定event.id的用户id 默认指定当前cookie用户
+        动态 实例化一个event对象 并返回
         """
-        user_id = self.id if user_id is None else user_id
-        return event(self.headers, user_id)
+        return event(self.headers)
 
 
 # 私信 message对象
@@ -583,10 +613,6 @@ class message(Link):
 # 动态 event对象
 class event(Link, list_fun):
 
-    def __init__(self, headers, user_id):
-        super().__init__(headers)
-        self.id = user_id
-
     def __next__(self):
         if self.index == self.data_len_ - 1:
             raise StopIteration
@@ -595,9 +621,22 @@ class event(Link, list_fun):
         self.index += 1
         return _event(self.headers, data)
 
-    def get(self, last_time=-1, limit=30):
+    def event(self, last_time=-1, limit=30):
+        api = MUSIC163_API + "/api/v1/event/get"
+        post_data = {
+            "pagesize": limit, "lasttime": last_time
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        if data["code"] != 200:
+            return data["code"]
+
+        self.music_list = data['event']
+        return 0
+
+    def user_event(self, user_id, last_time=-1, limit=30):
         """
-        获取self.id的用户动态
+        获取指导用户动态
+        :param user_id:用户id
         :param last_time:传入上一次返回结果的 time,将会返回下一页的数据
         :param limit:一页获取量
         :return:成功返回数据 失败返回错误码
@@ -606,7 +645,7 @@ class event(Link, list_fun):
         post_data = {
             "limit": limit, "time": last_time, "getcounts": "true", "total": "true"
         }
-        data = self._link(api + "/%s" % self.id, data=post_data, mode="POST")
+        data = self._link(api + "/%s" % user_id, data=post_data, mode="POST")
         if data["code"] != 200:
             return data["code"]
 
