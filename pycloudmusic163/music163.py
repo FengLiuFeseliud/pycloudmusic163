@@ -145,7 +145,7 @@ class Music163(Link):
         获取当前cookie用户信息并实例化my对像\n
         cookie无效返回200
 
-        :return:成功返回user对像 失败返回错误码
+        :return:成功返回my对像 失败返回错误码
         """
         api = MUSIC163_API + "/api/w/nuser/account/get"
         data = self._link(api, mode="POST")
@@ -158,7 +158,7 @@ class Music163(Link):
         获取歌曲并实例化music对像
 
         :param id_:歌曲id 支持多id(使用列表)
-        :return:返回music对像列表
+        :return:成功返回music对像列表, 失败返回错误码
         """
         api = MUSIC163_API + "/api/v3/song/detail"
         post_data = {"c": self.__id_format(id_, dict_str=True)}
