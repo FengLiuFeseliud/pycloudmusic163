@@ -263,6 +263,12 @@ class Music163(Link):
         return data['result'] if data["code"] == 200 else data["code"]
     
     def personalized_playlist(self, limit=30):
+        """
+        推荐歌单
+
+        :param limit:一页获取数量 (不支持 offset)
+        :return:成功返回内容 失败返回错误码
+        """
         api = MUSIC163_API + "/api/personalized/playlist"
         post_data = {
             "limit": limit, "total": "true", "n": 1000,
@@ -271,6 +277,12 @@ class Music163(Link):
         return data['result'] if data["code"] == 200 else data["code"]
     
     def personalized_new_song(self, areaId=0, limit=10):
+        """
+        推荐新歌
+
+        :param limit:一页获取数量 (不支持 offset)
+        :return:成功返回内容 失败返回错误码
+        """
         api = MUSIC163_API + "/api/personalized/newsong"
         post_data = {
             "type": 'recommend', "limit": limit, "areaId": areaId,
@@ -279,11 +291,23 @@ class Music163(Link):
         return data['result'] if data["code"] == 200 else data["code"]
     
     def personalized_dj(self):
+        """
+        推荐电台
+
+        :return:成功返回内容 失败返回错误码
+        """
         api = MUSIC163_API + "/api/personalized/djprogram"
         data = self._link(api, mode="POST")
         return data['result'] if data["code"] == 200 else data["code"]
     
     def home_page(self, refresh=True, cursor=None):
+        """
+        首页-发现 app 主页信息
+
+        :param refresh:是否刷新数据
+        :param cursor:上一条数据返回的 cursor
+        :return:成功返回内容 失败返回错误码
+        """
         api = MUSIC163_API + "/api/homepage/block/page"
         post_data = {
             "refresh": refresh, "cursor": cursor
@@ -293,7 +317,7 @@ class Music163(Link):
 
     def top_album(self, year, month, area="ALL", page=0, limit=50, type_="new"):
         """
-        area -> ALL:全部,ZH:华语,EA:欧美,KR:韩国,JP:日本
+        新碟上架
         """
         api = MUSIC163_API + "/api/discovery/new/albums/area"
         post_data = {
@@ -309,7 +333,16 @@ class Music163(Link):
         data = self._link(api, data=post_data, mode="POST")
         return data if data["code"] == 200 else data["code"]
 
-    def top_artist(self, type_=1, page=0, limit=100):
+    def top_artist_list(self, type_=1, page=0, limit=100):
+        """
+        歌手榜
+        type_ 1: 华语, 2: 欧美, 3: 韩国, 4: 日本
+
+        :param type_:地区类型
+        :param page:页数
+        :param limit:一页获取数量
+        :return:成功返回内容 失败返回错误码
+        """
         api = MUSIC163_API + "/api/toplist/artist"
         post_data = {
             "type": type_, "limit": limit, "offset": page * limit, "total": "true"
@@ -321,9 +354,16 @@ class Music163(Link):
         return data["list"]["artists"]
 
     def top_song(self, type_=0):
+        """
+        新歌速递\n
+        全部:0 华语:7 欧美:96 日本:8 韩国:16
+        
+        :param type_:地区类型 id
+        :return:成功返回内容 失败返回错误码
+        """
         api = MUSIC163_API + "/api/v1/discovery/new/songs"
         post_data = {
-            "type_": type_, "total": "true"
+            "areaId": type_, "total": "true"
         }
         data = self._link(api, data=post_data, mode="POST")
         return data["data"] if data["code"] == 200 else data["code"]

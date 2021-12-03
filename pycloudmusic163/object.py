@@ -167,6 +167,13 @@ class comment(Link):
 
     
     def comment_like(self, comment_id, in_):
+        """
+        评论点赞
+        
+        :param comment_id:评论id
+        :param in_: True点赞 点 False取消点赞
+        :return:成功返回数据 失败返回错误码
+        """
         api = MUSIC163_API + "/api/v1/comment"
         post_data = {
             "threadId": "%s%s" % (self.data_type, self.id),
@@ -953,6 +960,13 @@ class playlist(music163_object, comment, list_fun):
 
     
     def subscribers(self, page=0, limit=20):
+        """
+        查看歌单收藏者
+
+        :param page:页数
+        :param music_id:一页获得数量
+        :return:成功返回0, 失败返回错误码
+        """
         api = MUSIC163_API + "/api/playlist/subscribers"
         post_data = {
             "id": self.id, "limit": limit, "offset": page * limit
@@ -1245,6 +1259,14 @@ class dj(music163_object, list_fun):
         return dj_music(self.headers, data)
 
     def music(self, page=0, limit=30, asc=False):
+        """
+        获取电台节目 保存在self.music_list
+
+        :param page:页数
+        :param limit:一页获取数量
+        :param asc:False 时间正序 True 时间倒序
+        :return:成功0 失败返回错误码
+        """
         api = MUSIC163_API + "/api/dj/program/byradio"
         post_data = {
             "radioId": self.id, "limit": limit, "offset": limit * page, "asc": asc
