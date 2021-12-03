@@ -145,7 +145,7 @@ class Music163(Link):
         获取当前cookie用户信息并实例化my对像\n
         cookie无效返回200
 
-        :return:成功返回my对像 失败返回错误码
+        :return:成功返回my对像，失败返回错误码
         """
         api = MUSIC163_API + "/api/w/nuser/account/get"
         data = self._link(api, mode="POST")
@@ -172,7 +172,7 @@ class Music163(Link):
         获取用户并实例化user对像
 
         :param id_:用户id
-        :return:返回user对像
+        :return:成功返回user对像，失败返回错误码
         """
         api = MUSIC163_API + "/api/v1/user/detail"
         data = self._link(api + "/%s" % id_, mode="POST")
@@ -183,7 +183,7 @@ class Music163(Link):
         获取歌单并实例化playlist对像
 
         :param id_:歌单id
-        :return:返回playlist对像
+        :return:成功返回playlist对像，失败返回错误码
         """
         api = MUSIC163_API + "/api/v6/playlist/detail"
         post_data = {"id": id_, "n": 100000}
@@ -195,7 +195,7 @@ class Music163(Link):
         获取歌手并实例化artist对像
 
         :param id_:歌手id
-        :return:返回artist对像
+        :return:成功返回playlist对像，失败返回错误码
         """
         api = MUSIC163_API + "/api/artist/head/info/get"
         post_data = {
@@ -261,3 +261,69 @@ class Music163(Link):
         }
         data = self._link(api, data=post_data, mode="POST")
         return data['result'] if data["code"] == 200 else data["code"]
+    
+    def personalized_playlist(self, limit=30):
+        api = MUSIC163_API + "/api/personalized/playlist"
+        post_data = {
+            "limit": limit, "total": "true", "n": 1000,
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data['result'] if data["code"] == 200 else data["code"]
+    
+    def personalized_new_song(self, areaId=0, limit=10):
+        api = MUSIC163_API + "/api/personalized/newsong"
+        post_data = {
+            "type": 'recommend', "limit": limit, "areaId": areaId,
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data['result'] if data["code"] == 200 else data["code"]
+    
+    def personalized_dj(self):
+        api = MUSIC163_API + "/api/personalized/djprogram"
+        data = self._link(api, mode="POST")
+        return data['result'] if data["code"] == 200 else data["code"]
+    
+    def home_page(self, refresh=True, cursor=None):
+        api = MUSIC163_API + "/api/homepage/block/page"
+        post_data = {
+            "refresh": refresh, "cursor": cursor
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data["data"] if data["code"] == 200 else data["code"]
+
+    def top_album(self, year, month, area="ALL", page=0, limit=50, type_="new"):
+        """
+        area -> ALL:全部,ZH:华语,EA:欧美,KR:韩国,JP:日本
+        """
+        api = MUSIC163_API + "/api/discovery/new/albums/area"
+        post_data = {
+            "area": area,
+            "limit": limit,
+            "offset": page * limit,
+            "type": type_,
+            "year": year,
+            "month": month,
+            "total": 'false',
+            "rcmd": 'true',
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data if data["code"] == 200 else data["code"]
+
+    def top_artist(self, type_=1, page=0, limit=100):
+        api = MUSIC163_API + "/api/toplist/artist"
+        post_data = {
+            "type": type_, "limit": limit, "offset": page * limit, "total": "true"
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        if data["code"] != 200:
+            return data["code"]
+
+        return data["list"]["artists"]
+
+    def top_song(self, type_=0):
+        api = MUSIC163_API + "/api/v1/discovery/new/songs"
+        post_data = {
+            "type_": type_, "total": "true"
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data["data"] if data["code"] == 200 else data["code"]

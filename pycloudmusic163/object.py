@@ -103,7 +103,7 @@ class music163_object(Link):
                        )
         }
         if self.data_type not in similar_mode:
-            raise TypeError("歌单无法直接获取相似 请通过歌曲/该对象不支持获取相似")
+            raise TypeError("无法直接获取相似 请通过歌曲/该对象不支持获取相似")
 
         api, post_data = similar_mode[self.data_type]
         return self._similar(api, post_data)
@@ -164,6 +164,17 @@ class comment(Link):
         }
         data = self._link(api, data=post_data, mode="POST")
         return data["data"] if data["code"] == 200 else data["code"]
+
+    
+    def comment_like(self, comment_id, in_):
+        api = MUSIC163_API + "/api/v1/comment"
+        post_data = {
+            "threadId": "%s%s" % (self.data_type, self.id),
+            "commentId": comment_id
+        }
+        data = self._link(api + ('/like' if in_ else '/unlike'), data=post_data, mode="POST")
+        return 0 if data["code"] == 200 else data["code"]
+
 
     def __comment_set(self, mode, post_data):
         api = MUSIC163_API + "/api/resource/comments/" + mode
@@ -880,7 +891,7 @@ class artist(music163_object, list_fun):
 
 
 # 歌单 playlist对象
-class playlist(music163_object, list_fun):
+class playlist(music163_object, comment, list_fun):
 
     def __init__(self, headers, playlist_data):
         super().__init__(headers)
@@ -939,6 +950,15 @@ class playlist(music163_object, list_fun):
         """
         data = self.__tracks("del", music_id)
         return 0, data["count"] if data["code"] == 200 else data["code"]
+
+    
+    def subscribers(self, page=0, limit=20):
+        api = MUSIC163_API + "/api/playlist/subscribers"
+        post_data = {
+            "id": self.id, "limit": limit, "offset": page * limit
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data['subscribers'] if data["code"] == 200 else data["code"]
 
 
 # 专辑 album对象
