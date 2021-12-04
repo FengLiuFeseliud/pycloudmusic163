@@ -20,6 +20,7 @@ class LoginMusic163(Link):
 
         headers = self.headers
         headers["cookie"] = cookie
+        self.headers = headers
         return Music163(headers), cookie
 
     def login_email(self, email, password):
@@ -119,6 +120,81 @@ class LoginMusic163(Link):
 
         music163_object, cookie = self.__set_cookie()
         return 803, music163_object, cookie
+
+    def logout(self, cookie):
+        """
+        退出登录
+        """
+        headers = self.music163_headers
+        headers["cookie"] += cookie
+        self.headers = headers
+
+        api = MUSIC163_API + "/api/logout"
+        data = self._link(api, mode="POST")
+        return data if data["code"] == 200 else data["code"]
+    
+    def check_captcha(self, phone, captcha, country_code="86"):
+        api = MUSIC163_API + "/api/sms/captcha/verify"
+        post_data = {
+            "cellphone": phone, "captcha": captcha,"countrycode": country_code,
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data if data["code"] == 200 else data["code"]
+
+    def check_cellphone(self, phone, country_code="86"):
+        api = MUSIC163_API + "/api/cellphone/existence/check"
+        post_data = {
+            "cellphone": phone, "countrycode": country_code,
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        if data["code"] != 200:
+            return data["code"]
+        
+        if data["exist"] == 1:
+            return data["nickname"]
+
+        return None
+    
+    def register(self, name, phone, password, captcha, country_code="86"):
+        """
+        手机 注册/修改密码
+
+        :param name:昵称
+        :param phone:手机号
+        :param password:密码
+        :param captcha:验证码
+        :param country_code:国家码 (用于国外手机号)
+        :return:成功返回Music163对象, cookie 失败返回错误码
+        """
+        api = MUSIC163_API + "/api/register/cellphone"
+        post_data = {
+            "phone": phone,
+            "countrycode": country_code,
+            "captcha": captcha,
+            "password": self._md5(password),
+            "nickname": name,
+            "rememberLogin": 'true'
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data
+
+    def replace_cellphone(self, phone, captcha, old_captcha, country_code="86"):
+        """
+        更换绑定手机
+
+        :param phone:手机号
+        :param captcha:新手机验证码
+        :param old_captcha:原手机验证码
+        :param country_code:国家码 (用于国外手机号)
+        :return:
+        """
+        api = MUSIC163_API + "/api/user/replaceCellphone"
+        post_data = {
+            "cellphone": phone, "captcha": captcha, "oldcaptcha": old_captcha, "ctcode": country_code,
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data if data["code"] == 200 else data["code"]
+
 
 
 class Music163(Link):
@@ -314,24 +390,6 @@ class Music163(Link):
         }
         data = self._link(api, data=post_data, mode="POST")
         return data["data"] if data["code"] == 200 else data["code"]
-
-    def top_album(self, year, month, area="ALL", page=0, limit=50, type_="new"):
-        """
-        新碟上架
-        """
-        api = MUSIC163_API + "/api/discovery/new/albums/area"
-        post_data = {
-            "area": area,
-            "limit": limit,
-            "offset": page * limit,
-            "type": type_,
-            "year": year,
-            "month": month,
-            "total": 'false',
-            "rcmd": 'true',
-        }
-        data = self._link(api, data=post_data, mode="POST")
-        return data if data["code"] == 200 else data["code"]
 
     def top_artist_list(self, type_=1, page=0, limit=100):
         """

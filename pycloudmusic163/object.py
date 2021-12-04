@@ -1,7 +1,9 @@
+from os import execle
 import time
+
+from requests.api import post
 import pycloudmusic163
 from pycloudmusic163.py_API import Link
-from pycloudmusic163 import Erorr
 
 """
  出现-460错误 尝试再cookie加上 "appver=2.7.1.198277; os=pc;"
@@ -70,7 +72,7 @@ class music163_object(Link):
         }
 
         if self.data_type not in subscribe_mode:
-            raise Erorr.Music163ObjectException()
+            raise TypeError("无法直接收藏 请通过歌曲/该对象不支持收藏")
 
         api, post_data = subscribe_mode[self.data_type]
         data = self._link(api, data=post_data, mode="POST")
@@ -379,6 +381,12 @@ class user(Link, list_fun):
 
         return data["allData"] if type_ else data["weekData"]
 
+    def follow(self, follow_in=True):
+        api = MUSIC163_API + "/api/user"
+        follow_in = "follow" if follow_in else "delfollow"
+        data = self._link(f"{api}/{follow_in}/{self.id}", mode="POST")
+        return 0 if data["code"] == 200 else data["code"]
+
 
 # 当前使用cookie的用户 my对象
 class my(user):
@@ -472,6 +480,57 @@ class my(user):
         动态 实例化一个event对象 并返回
         """
         return event(self.headers)
+
+    def cloud(self, page=0, limit=30):
+        api = MUSIC163_API + "/api/v1/cloud/get"
+        post_data = {
+            'limit': limit, 'offset': page * limit
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return cloud(self.headers, data) if data["code"] == 200 else data["code"]
+    
+    def __sublist(self, api, post_data):
+        data = self._link(api, data=post_data, mode="POST")
+        try:
+            return data["data"] if data["code"] == 200 else data["code"]
+        except KeyError:
+            return data["djRadios"] if data["code"] == 200 else data["code"]
+        
+    
+    def artist_sublist(self, page=0, limit=25):
+        api = MUSIC163_API + "/api/artist/sublist"
+        post_data = {
+            'limit': limit, 'offset': page * limit, "total": "true"
+        }
+        return self.__sublist(api, post_data)
+
+    def album_sublist(self, page=0, limit=25):
+        api = MUSIC163_API + "/api/album/sublist"
+        post_data = {
+            'limit': limit, 'offset': page * limit, "total": "true"
+        }
+        return self.__sublist(api, post_data)
+
+    def dj_sublist(self, page=0, limit=25):
+        api = MUSIC163_API + "/api/djradio/get/subed"
+        post_data = {
+            'limit': limit, 'offset': page * limit, "total": "true"
+        }
+        return self.__sublist(api, post_data)
+    
+    def mv_sublist(self, page=0, limit=25):
+        api = MUSIC163_API + "/api/cloudvideo/allvideo/sublist"
+        post_data = {
+            'limit': limit, 'offset': page * limit, "total": "true"
+        }
+        return self.__sublist(api, post_data)
+    
+    def topic_sublist(self, page=0, limit=50):
+        api = MUSIC163_API + "/api/topic/sublist"
+        post_data = {
+            'limit': limit, 'offset': page * limit, "total": "true"
+        }
+        return self.__sublist(api, post_data)
 
 
 # 私信 message对象
@@ -820,6 +879,87 @@ class fm(Link):
         return 0, data['count'] if data["code"] == 200 else data["code"]
 
 
+class cloud(Link):
+
+    def __init__(self, headers, cloud_data):
+        super().__init__(headers)
+        self.cloud_count = cloud_data["count"]
+        self.max_size = cloud_data["maxSize"]
+        self.size = cloud_data["size"]
+        self.music_list = cloud_data["data"]
+
+    def __iter__(self):
+        self.data_len_ = len(self.music_list) if self.music_list != [] else 1
+        self.index = 0
+        return self
+
+    def __next__(self):
+        if self.index == self.data_len_:
+            raise StopIteration
+
+        data = self.music(self.music_list[self.index]["songId"])[0]
+        self.index += 1
+        return cloud_music(self.headers, data)
+
+    def get(self, page=0, limit=30):
+        api = MUSIC163_API + "/api/v1/cloud/get"
+        post_data = {
+            'limit': limit, 'offset': page * limit
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        if data["code"] != 200:
+            return data["code"]
+        
+        self.music_list = data["data"]
+
+    @staticmethod
+    def __set_songsId(id_):
+        if type(id_) == int:
+            id_ = str(id_)
+        else:
+            id_ = ",".join([str(songId) for songId in id_])
+        
+        return "[" + id_ + "]"
+
+    def music(self, id_):
+        api = MUSIC163_API + "/api/v1/cloud/get/byids"
+        post_data = {
+            "songIds":  self.__set_songsId(id_)
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data['data'] if data["code"] == 200 else data["code"]
+
+    def del_(self, id_):
+        api = MUSIC163_API + "/api/cloud/del"
+        post_data = {
+            "songIds": self.__set_songsId(id_)
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data if data["code"] == 200 else data["code"]
+
+
+class cloud_music(music_in):
+
+    def __init__(self, headers, cloud_music_data):
+        super().__init__(headers)
+        self.id = cloud_music_data["simpleSong"]["id"]
+        self.name = cloud_music_data["songName"]
+        self.file_size = cloud_music_data["fileSize"]
+        self.file_name = cloud_music_data["fileName"]
+        self.artist = cloud_music_data["artist"]
+        self.album = cloud_music_data["album"]
+        self.cover = cloud_music_data["simpleSong"]['al']["picUrl"]
+        self.add_time = cloud_music_data["addTime"]
+
+    def set_music_data(self, id_, user_id):
+        api = MUSIC163_API + "/api/cloud/user/song/match"
+        post_data = {
+            "userId": user_id, "songId": self.id, "adjustSongId": id_
+        }
+        data = self._link(api, data=post_data, mode="POST")
+        return data if data["code"] == 200 else data["code"]
+
+
 # 歌手 artist对象
 class artist(music163_object, list_fun):
 
@@ -958,7 +1098,6 @@ class playlist(music163_object, comment, list_fun):
         data = self.__tracks("del", music_id)
         return 0, data["count"] if data["code"] == 200 else data["code"]
 
-    
     def subscribers(self, page=0, limit=20):
         """
         查看歌单收藏者

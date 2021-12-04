@@ -68,6 +68,12 @@ pip install pycloudmusic163
 
 
 
+## 0.错误码
+
+> ```
+> 250: 风险提示 异常
+> ```
+
 ## 1.登录
 
 > `from pycloudmusic163 import LoginMusic163`
