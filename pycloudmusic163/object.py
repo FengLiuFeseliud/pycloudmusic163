@@ -1,7 +1,4 @@
-from os import execle
 import time
-
-from requests.api import post
 import pycloudmusic163
 from pycloudmusic163.py_API import Link
 
@@ -382,6 +379,11 @@ class user(Link, list_fun):
         return data["allData"] if type_ else data["weekData"]
 
     def follow(self, follow_in=True):
+        """
+        关注用户
+
+        :return:成功返回0 失败返回错误码
+        """
         api = MUSIC163_API + "/api/user"
         follow_in = "follow" if follow_in else "delfollow"
         data = self._link(f"{api}/{follow_in}/{self.id}", mode="POST")
@@ -482,6 +484,13 @@ class my(user):
         return event(self.headers)
 
     def cloud(self, page=0, limit=30):
+        """
+        获取云盘数据 并实例化一个cloud对象返回
+
+        :param page:页数
+        :param limit:一页获取数量
+        :return:成功返回cloud对象 失败返回错误码
+        """
         api = MUSIC163_API + "/api/v1/cloud/get"
         post_data = {
             'limit': limit, 'offset': page * limit
@@ -489,7 +498,10 @@ class my(user):
         data = self._link(api, data=post_data, mode="POST")
         return cloud(self.headers, data) if data["code"] == 200 else data["code"]
     
-    def __sublist(self, api, post_data):
+    def __sublist(self, page, limit, api):
+        post_data = {
+            'limit': limit, 'offset': page * limit, "total": "true"
+        }
         data = self._link(api, data=post_data, mode="POST")
         try:
             return data["data"] if data["code"] == 200 else data["code"]
@@ -498,39 +510,43 @@ class my(user):
         
     
     def artist_sublist(self, page=0, limit=25):
+        """
+        查看cookie用户收藏的歌手
+
+        :param page:页数
+        :param limit:一页获取数量
+        :return:成功返回数据 失败返回错误码
+        """
         api = MUSIC163_API + "/api/artist/sublist"
-        post_data = {
-            'limit': limit, 'offset': page * limit, "total": "true"
-        }
-        return self.__sublist(api, post_data)
+        return self.__sublist(page, limit, api)
 
     def album_sublist(self, page=0, limit=25):
+        """
+        查看cookie用户收藏的专辑 (参数参考artist_sublist())
+        """
         api = MUSIC163_API + "/api/album/sublist"
-        post_data = {
-            'limit': limit, 'offset': page * limit, "total": "true"
-        }
-        return self.__sublist(api, post_data)
+        return self.__sublist(page, limit, api)
 
     def dj_sublist(self, page=0, limit=25):
+        """
+        查看cookie用户收藏的电台 (参数参考artist_sublist())
+        """
         api = MUSIC163_API + "/api/djradio/get/subed"
-        post_data = {
-            'limit': limit, 'offset': page * limit, "total": "true"
-        }
-        return self.__sublist(api, post_data)
+        return self.__sublist(page, limit, api)
     
     def mv_sublist(self, page=0, limit=25):
+        """
+        查看cookie用户收藏的MV (参数参考artist_sublist())
+        """
         api = MUSIC163_API + "/api/cloudvideo/allvideo/sublist"
-        post_data = {
-            'limit': limit, 'offset': page * limit, "total": "true"
-        }
-        return self.__sublist(api, post_data)
+        return self.__sublist(page, limit, api)
     
     def topic_sublist(self, page=0, limit=50):
+        """
+        查看cookie用户收藏的专题 (参数参考artist_sublist())
+        """
         api = MUSIC163_API + "/api/topic/sublist"
-        post_data = {
-            'limit': limit, 'offset': page * limit, "total": "true"
-        }
-        return self.__sublist(api, post_data)
+        return self.__sublist(page, limit, api)
 
 
 # 私信 message对象
@@ -879,13 +895,18 @@ class fm(Link):
         return 0, data['count'] if data["code"] == 200 else data["code"]
 
 
+# 云盘 cloud对象
 class cloud(Link):
 
     def __init__(self, headers, cloud_data):
         super().__init__(headers)
+        # 云盘歌曲数
         self.cloud_count = cloud_data["count"]
+        # 云盘最大容量
         self.max_size = cloud_data["maxSize"]
+        # 云盘已用容量
         self.size = cloud_data["size"]
+        # 云盘当时页歌曲数据
         self.music_list = cloud_data["data"]
 
     def __iter__(self):
@@ -902,6 +923,13 @@ class cloud(Link):
         return cloud_music(self.headers, data)
 
     def get(self, page=0, limit=30):
+        """
+        获取云盘数据 保存至self.music_list
+
+        :param page:页数
+        :param limit:一页获取数量
+        :return:成功返回0 失败返回错误码
+        """
         api = MUSIC163_API + "/api/v1/cloud/get"
         post_data = {
             'limit': limit, 'offset': page * limit
@@ -911,6 +939,7 @@ class cloud(Link):
             return data["code"]
         
         self.music_list = data["data"]
+        return 0
 
     @staticmethod
     def __set_songsId(id_):
@@ -922,6 +951,12 @@ class cloud(Link):
         return "[" + id_ + "]"
 
     def music(self, id_):
+        """
+        获取云盘歌曲详细数据
+
+        :param id_:云盘歌曲id 支持多id使用列表 (self.music_list中的songId)
+        :return:成功返回数据 失败返回错误码
+        """
         api = MUSIC163_API + "/api/v1/cloud/get/byids"
         post_data = {
             "songIds":  self.__set_songsId(id_)
@@ -930,28 +965,50 @@ class cloud(Link):
         return data['data'] if data["code"] == 200 else data["code"]
 
     def del_(self, id_):
+        """
+        删除云盘歌曲
+
+        :param id_:云盘歌曲id (self.music_list中的songId)
+        :return:成功返回0 失败返回错误码
+        """
         api = MUSIC163_API + "/api/cloud/del"
         post_data = {
             "songIds": self.__set_songsId(id_)
         }
         data = self._link(api, data=post_data, mode="POST")
-        return data if data["code"] == 200 else data["code"]
+        return 0 if data["code"] == 200 else data["code"]
 
 
+# 云盘歌曲 cloud_music对象
 class cloud_music(music_in):
 
     def __init__(self, headers, cloud_music_data):
         super().__init__(headers)
+        # 云盘歌曲id
         self.id = cloud_music_data["simpleSong"]["id"]
+        # 标题
         self.name = cloud_music_data["songName"]
+        # 歌曲大小
         self.file_size = cloud_music_data["fileSize"]
+        # 歌曲文件名
         self.file_name = cloud_music_data["fileName"]
+        # 歌手
         self.artist = cloud_music_data["artist"]
+        # 专辑
         self.album = cloud_music_data["album"]
+        # 封面
         self.cover = cloud_music_data["simpleSong"]['al']["picUrl"]
+        # 上传时间
         self.add_time = cloud_music_data["addTime"]
 
     def set_music_data(self, id_, user_id):
+        """
+        云盘歌曲信息匹配纠正 (不知道怎么用)
+
+        :param id_:要匹配的歌曲 id
+        :param user_id:用户 id
+        :return:成功返回数据 失败返回错误码
+        """
         api = MUSIC163_API + "/api/cloud/user/song/match"
         post_data = {
             "userId": user_id, "songId": self.id, "adjustSongId": id_

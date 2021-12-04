@@ -134,6 +134,14 @@ class LoginMusic163(Link):
         return data if data["code"] == 200 else data["code"]
     
     def check_captcha(self, phone, captcha, country_code="86"):
+        """
+        校验验证码
+
+        :param phone:手机号
+        :param captcha:验证码
+        :param country_code:国家码 (用于国外手机号)
+        :return:api错误返回错误码
+        """
         api = MUSIC163_API + "/api/sms/captcha/verify"
         post_data = {
             "cellphone": phone, "captcha": captcha,"countrycode": country_code,
@@ -142,6 +150,13 @@ class LoginMusic163(Link):
         return data if data["code"] == 200 else data["code"]
 
     def check_cellphone(self, phone, country_code="86"):
+        """
+        检查手机号是否被注册
+
+        :param phone:手机号
+        :param country_code:国家码 (用于国外手机号)
+        :return:未注册返回None 被注册返回用户名 api错误返回错误码
+        """
         api = MUSIC163_API + "/api/cellphone/existence/check"
         post_data = {
             "cellphone": phone, "countrycode": country_code,
