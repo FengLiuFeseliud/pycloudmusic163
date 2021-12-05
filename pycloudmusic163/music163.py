@@ -30,7 +30,7 @@ class LoginMusic163(Link):
 
         :param email:邮箱
         :param password:密码
-        :return:成功返回Music163对象, cookie 失败返回错误码
+        :return:成功返回状态码, Music163对象, cookie 失败返回错误码, "", ""
         """
         api = MUSIC163_API + "/api/login"
         post_data = {
@@ -40,10 +40,10 @@ class LoginMusic163(Link):
         }
         data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
-            return data["code"]
+            return data["code"], "", ""
 
         music163_object, cookie = self.__set_cookie()
-        return music163_object, cookie
+        return data["code"], music163_object, cookie
 
     def login_captcha(self, phone, country_code="86"):
         """
@@ -70,7 +70,7 @@ class LoginMusic163(Link):
         :param password:验证参数
         :param captcha:True时为验证码登录 password值为验证码 False时为密码登录 password值为密码
         :param country_code:国家码 (用于国外手机号登录)
-        :return:成功返回Music163对象, cookie 失败返回错误码
+        :return:成功返回状态码, Music163对象, cookie 失败返回错误码, "", ""
         """
         if not captcha:
             password = self._md5(password)
@@ -84,10 +84,10 @@ class LoginMusic163(Link):
         }
         data = self._link(api, data=post_data, mode="POST")
         if data["code"] != 200:
-            return data["code"]
+            return data["code"], "", ""
 
         music163_object, cookie = self.__set_cookie()
-        return music163_object, cookie
+        return data["code"], music163_object, cookie
 
     def login_qr_key(self):
         """
@@ -107,7 +107,7 @@ class LoginMusic163(Link):
         二维码登录 查询二维码状态
 
         状态码:801 等待扫码 802 授权中 800 二维码不存在或已过期 803 登录成功
-        :return:成功返回状态码, Music163对象, cookie 失败返回状态码
+        :return:成功返回状态码, Music163对象, cookie 失败返回错误码, "", ""
         """
         api = MUSIC163_API + "/api/login/qrcode/client/login"
         post_data = {
@@ -172,14 +172,14 @@ class LoginMusic163(Link):
     
     def register(self, name, phone, password, captcha, country_code="86"):
         """
-        手机 注册/修改密码
+        手机注册
 
         :param name:昵称
         :param phone:手机号
         :param password:密码
         :param captcha:验证码
         :param country_code:国家码 (用于国外手机号)
-        :return:成功返回Music163对象, cookie 失败返回错误码
+        :return:成功返回状态码, Music163对象, cookie 失败返回错误码, "", ""
         """
         api = MUSIC163_API + "/api/register/cellphone"
         post_data = {
@@ -191,7 +191,11 @@ class LoginMusic163(Link):
             "rememberLogin": 'true'
         }
         data = self._link(api, data=post_data, mode="POST")
-        return data
+        if data["code"] != 200:
+            return data["code"], "", ""
+        
+        music163_object, cookie = self.__set_cookie()
+        return data["code"], music163_object, cookie
 
     def replace_cellphone(self, phone, captcha, old_captcha, country_code="86"):
         """

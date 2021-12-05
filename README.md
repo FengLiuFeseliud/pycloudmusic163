@@ -14,6 +14,8 @@
 pip install pycloudmusic163
 ```
 
+
+
 ### 简单使用
 
 > 获取歌单
@@ -31,8 +33,8 @@ pip install pycloudmusic163
 > # 打印歌单标题 歌单作者 歌单简介
 > print(playlist.name, playlist.user_str, playlist.description)
 > for music in playlist:
->     # 打印歌单每一首歌的标题 歌手
->     print(music.name_str, music.artist_str)
+> # 打印歌单每一首歌的标题 歌手
+> print(music.name_str, music.artist_str)
 > ```
 >
 > 二维码登录
@@ -50,10 +52,10 @@ pip install pycloudmusic163
 > print(key)
 > # 轮查二维码 803为登录成功
 > while True:
->     code, music163, cookie = login.login_qr(key)
->     if code == 803:
->       break
->     time.sleep(3)
+> code, music163, cookie = login.login_qr(key)
+> if code == 803:
+>   break
+> time.sleep(3)
 > 
 > # 验证登录成功 打印用户名称 用户签名 用户id
 > my = music163.my()
@@ -62,6 +64,7 @@ pip install pycloudmusic163
 >
 
 ***
+
 
 
 # 使用文档
@@ -94,9 +97,11 @@ pip install pycloudmusic163
 >
 > 错误码：501 未注册 502 密码错误
 >
-> 成功返回Music163对象， cookie 失败返回错误码
+> 成功返回状态码， Music163对象， cookie，失败返回错误码，""，""
 >
 >  
+>
+> 
 >
 > `login.login_captcha(phone, country_code="86")`  发送手机验证码
 >
@@ -108,6 +113,8 @@ pip install pycloudmusic163
 >
 > 成功返回0，失败返回错误码
 >
+>  
+>
 > 
 >
 > `login.login_cellphone(phone, password, captcha=False, country_code="86")` 手机/验证码 登录
@@ -118,7 +125,9 @@ pip install pycloudmusic163
 > password： 验证参数
 > captcha： True 时为验证码登录 password 值为验证码，False 时为密码登录 password 值为密码
 > country_code： 国家码 (用于国外手机号登录)
-> 成功返回Music163对象, cookie，失败返回错误码
+> 成功返回状态码， Music163对象， cookie，失败返回错误码，""，""
+>
+>  
 >
 > 
 >
@@ -135,6 +144,8 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > `login.check_captcha(phone, captcha, country_code="86")` 校验验证码
 >
 > **参数说明:**
@@ -146,6 +157,8 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > `login.check_cellphone(phone, country_code="86")` 检查手机号是否被注册
 >
 > **参数说明:**
@@ -153,6 +166,8 @@ pip install pycloudmusic163
 > phone：手机号
 > country_code： 国家码 (用于国外手机号登录)
 > 未注册返回  None，被注册返回用户名，api 错误返回错误码
+>
+>  
 >
 > 
 >
@@ -170,9 +185,11 @@ pip install pycloudmusic163
 >
 > country_code：国家码 (用于国外手机号)
 >
-> 没有测试过的接口，返回啥我也不知道
+> 成功返回状态码， Music163对象， cookie，失败返回错误码，""，""
 >
 >  
+>
+> 
 >
 > `login.replace_cellphone(phone, captcha, old_captcha, country_code="86")` 更换绑定手机
 >
@@ -200,11 +217,15 @@ pip install pycloudmusic163
 >
 > 使用 login 对象登录成功也会返回 music163 对象
 >
+>  
+>
 > 
 >
 > `music163.my()` 获取当前 cookie 用户信息并实例化 my 对像
 >
 > cookie 无效返回200，成功返回 my 对像，失败返回错误码
+>
+>  
 >
 > 
 >
@@ -218,6 +239,8 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > `music163.user(id_)` 获取用户并实例化 user 对像
 >
 > **参数说明:**
@@ -228,6 +251,8 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > `music163.my()` 获取当前 cookie 用户信息并实例化 my 对像
 >
 > **参数说明:**
@@ -235,6 +260,8 @@ pip install pycloudmusic163
 > 成功返回 my 对像，失败返回错误码，cookie 无效返回200
 >
 >  
+>
+> 
 >
 > `music163.playlist(id_)` 获取歌单并实例化 playlist 对像
 >
@@ -246,6 +273,8 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > `music163.artist(id_)` 获取歌手并实例化 artist 对像
 >
 > **参数说明:**
@@ -255,6 +284,8 @@ pip install pycloudmusic163
 > 成功返回 artist 对像，失败返回错误码
 >
 >  
+>
+> 
 >
 > `music163.album(id_)` 获取专辑并实例化 album 对像
 >
@@ -272,6 +303,8 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > `music163.mv(id_)` 获取 mv 并实例化 mv 对像
 >
 > **参数说明:**
@@ -282,13 +315,17 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > `music163.dj(id_)` 获取电台并实例化 dj 对像
 >
 > **参数说明:**
 >
 > id_：电台 id
 >
-> 成功返回 dj 对像，失败返回错误码
+> 成功返回 dj 对像，失败返回错误码 
+>
+>  
 
 ## 3.对象方法
 
@@ -326,7 +363,9 @@ pip install pycloudmusic163
 >
 > in_：True 点赞，False 取消点赞
 >
->   
+>  
+>
+> 
 >
 > **歌单，专辑，MV，歌手，电台**  都支持 收藏，因此支持`self.subscribe`方法
 >
@@ -340,9 +379,13 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > **MV，歌手，歌曲**  都支持获取相似，因此支持`self.similar`方法
 >
 > `similar()` 该对象的相似
+>
+>  
 >
 > 
 >
@@ -382,6 +425,8 @@ pip install pycloudmusic163
 > 1014: 视频
 > ```
 >
+>  
+>
 > 
 >
 > `music163.personalized_playlist(limit=30)` 推荐歌单
@@ -391,6 +436,8 @@ pip install pycloudmusic163
 > limit：一页获取数量 (不支持 offset)
 >
 > 成功返回内容 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -402,6 +449,8 @@ pip install pycloudmusic163
 >
 > 成功返回内容 失败返回错误码
 >
+>  
+>
 > 
 >
 > `music163.personalized_dj()` 推荐电台
@@ -409,6 +458,8 @@ pip install pycloudmusic163
 > **参数说明:**
 >
 > 成功返回内容 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -421,6 +472,8 @@ pip install pycloudmusic163
 > cursor：上一条数据返回的 cursor
 >
 > 成功返回内容 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -444,6 +497,8 @@ pip install pycloudmusic163
 > 4: 日本
 > ```
 >
+>  
+>
 > 
 >
 > `music163.top_song(type_=0)`  新歌速递
@@ -460,6 +515,8 @@ pip install pycloudmusic163
 > 日本:8 
 > 韩国:16
 > ```
+>
+>  
 >
 > 
 >
@@ -486,6 +543,8 @@ pip install pycloudmusic163
 > user.vip
 > ```
 >
+>  
+>
 > 
 >
 > `user.like_music()`  获取该 user 对象喜欢的歌曲 (返回 playlist 对象)
@@ -499,6 +558,8 @@ pip install pycloudmusic163
 > music_id：一页获得数量
 >
 > 成功返回 playlist 对象列表，失败返回错误码
+>
+>  
 >
 > 
 >
@@ -515,17 +576,19 @@ pip install pycloudmusic163
 > ```json
 > 返回数据的格式
 > [
->  {
->  	播放次数
->      "song": music 数据/music 对象
+> {
+> 	播放次数
+>   "song": music 数据/music 对象
 > 	},
 > 	{
->  	播放次数
->      "song": music 数据/music 对象
+> 	播放次数
+>   "song": music 数据/music 对象
 > 	},
->  ...
+> ...
 > ]
 > ```
+>
+>  
 >
 > 
 >
@@ -536,6 +599,8 @@ pip install pycloudmusic163
 > follow_in：True 时关注，False 取消关注
 >
 > 成功返回0，失败返回错误码
+>
+>  
 >
 > 
 >
@@ -557,6 +622,8 @@ pip install pycloudmusic163
 > # 登录时间戳转字符串，格式 "%Y/%m/%d %H:%M:%S"
 > my.login_time_str
 > ```
+>
+>  
 >
 > 
 >
@@ -586,6 +653,8 @@ pip install pycloudmusic163
 >
 > limit：一页获得数量
 >
+>  
+>
 > 
 >
 > `my.cloud(page=0, limit=30)`  获取云盘数据，并实例化一个cloud对象返回
@@ -596,6 +665,8 @@ pip install pycloudmusic163
 >
 > music_id：一页获得数量
 >
+>  
+>
 > 
 >
 > `my.sign(type_=True)`  使用该 my 对象签到
@@ -605,6 +676,8 @@ pip install pycloudmusic163
 > type_：True 为安卓端签到3点经验，False 为网页签到2点经验
 >
 > 成功返回0，失败返回错误码
+>
+>  
 >
 > 
 >
@@ -619,6 +692,8 @@ pip install pycloudmusic163
 > playlist_id：歌单id 默认使用喜欢的歌曲歌单
 >
 > 成功返回数据 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -636,6 +711,8 @@ pip install pycloudmusic163
 > message = message(headers, "用户uid")
 > ```
 >
+>  
+>
 > 
 >
 > `message.comments(before_time=-1, limit=30)`  获取回复我
@@ -647,6 +724,8 @@ pip install pycloudmusic163
 > limit：一页获取量
 >
 > 成功返回数据 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -660,6 +739,8 @@ pip install pycloudmusic163
 >
 > 成功返回数据 失败返回错误码
 >
+>  
+>
 > 
 >
 > `message.notices(last_time=-1, limit=30)`  获取通知
@@ -671,6 +752,8 @@ pip install pycloudmusic163
 > limit：一页获取量
 >
 > 成功返回数据 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -693,19 +776,21 @@ pip install pycloudmusic163
 > ```json
 > 返回数据的格式
 > [
->  {
->  	私信数据
->      "fromUser": user 数据/user 对象
->      "toUser": user 数据/user 对象
+> {
+> 	私信数据
+>   "fromUser": user 数据/user 对象
+>   "toUser": user 数据/user 对象
 > 	},
 > 	{
->  	私信数据
->      "fromUser": user 数据/user 对象
->      "toUser": user 数据/user 对象
+> 	私信数据
+>   "fromUser": user 数据/user 对象
+>   "toUser": user 数据/user 对象
 > 	},
->  ...
+> ...
 > ]
 > ```
+>
+>  
 >
 > 
 >
@@ -722,6 +807,8 @@ pip install pycloudmusic163
 > 成功返回数据 失败返回错误码
 >
 > 返回数据的格式同`message.private_history`
+>
+>  
 >
 > 
 >
@@ -747,6 +834,8 @@ pip install pycloudmusic163
 >
 > 成功返回第一位发送给的用户历史私信 失败返回错误码
 >
+>  
+>
 > 
 >
 > ### **event 对象**
@@ -763,6 +852,8 @@ pip install pycloudmusic163
 > event = event(headers)
 > ```
 >
+>  
+>
 > 
 >
 > `event.event(last_time=-1, limit=30)`  获取下一页动态 保存至self.music_list
@@ -774,6 +865,8 @@ pip install pycloudmusic163
 > limit：一页获取量
 >
 > 成功返回0 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -789,6 +882,8 @@ pip install pycloudmusic163
 >
 > 成功返回0 失败返回错误码
 >
+>  
+>
 > 
 >
 > `event.del_(ev_id)` 删除cookie用户动态
@@ -798,6 +893,8 @@ pip install pycloudmusic163
 > ev_id：动态id
 >
 > 成功返回0 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -820,6 +917,8 @@ pip install pycloudmusic163
 > id_：需一起发送的资源 id
 >
 > 成功返回0 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -864,6 +963,8 @@ pip install pycloudmusic163
 > _event.event_time
 > ```
 >
+>  
+>
 > 
 >
 > `_event.forward(msg)` 指定该  _event 对象转发到cookie用户
@@ -877,6 +978,8 @@ pip install pycloudmusic163
 > 成功返回0 失败返回错误码
 >
 >  
+>
+> 
 >
 > ### **fm对象**
 >
@@ -892,6 +995,8 @@ pip install pycloudmusic163
 > fm = fm(headers)
 > ```
 >
+>  
+>
 > 
 >
 > `fm.read()` 获取fm歌曲
@@ -905,6 +1010,8 @@ pip install pycloudmusic163
 > 成功返回 (0,垃圾桶歌曲数) 失败返回错误码
 >
 >  
+>
+> 
 >
 > ### **cloud 对象**
 >
@@ -925,6 +1032,8 @@ pip install pycloudmusic163
 > cloud.music_list
 > ```
 >
+>  
+>
 > 
 >
 > `cloud.get(page=0, limit=30)`  获取云盘数据 保存至self.music_list
@@ -939,6 +1048,8 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > `cloud.music(id_)` 获取云盘歌曲详细数据
 >
 > **参数说明:**
@@ -949,6 +1060,8 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > `cloud.del_(id_)` 删除云盘歌曲
 >
 > **参数说明:**
@@ -956,6 +1069,8 @@ pip install pycloudmusic163
 > id_：云盘歌曲id 支持多id使用列表 (self.music_list中的songId)
 >
 > 成功返回0 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -988,6 +1103,8 @@ pip install pycloudmusic163
 > self.add_time
 > ```
 >
+>  
+>
 > 
 >
 > `cloud_music.set_music_data(id_, user_id)` 云盘歌曲信息匹配纠正 (不知道怎么用)
@@ -1000,6 +1117,8 @@ pip install pycloudmusic163
 >
 > 成功返回数据 失败返回错误码
 >
+>  
+>
 > 
 >
 > 下载该 music 对象歌曲 (使用 app 播放接口)  这个接口相当于在 app 中点击播放
@@ -1009,6 +1128,8 @@ pip install pycloudmusic163
 > **参数说明:**
 >
 > 参数参考`music.music_download`
+>
+>  
 >
 > 
 >
@@ -1047,6 +1168,8 @@ pip install pycloudmusic163
 > music.not_download = False
 > ```
 >
+>  
+>
 > 
 >
 > `music.similar_playlist()`  该 music 对象的相似歌单
@@ -1065,6 +1188,8 @@ pip install pycloudmusic163
 >
 > 成功返回0 失败返回错误码
 >
+>  
+>
 > 
 >
 > `music.lyric()` 该 music 对象的歌词
@@ -1080,6 +1205,8 @@ pip install pycloudmusic163
 > 2 纯音乐 
 > 3 暂无歌词
 > ```
+>
+>  
 >
 > 
 >
@@ -1105,6 +1232,8 @@ pip install pycloudmusic163
 >
 > 错误码 -105需要会员
 >
+>  
+>
 > 
 >
 > 下载该 music 对象歌曲 (使用 app 播放接口)  这个接口相当于在 app 中点击播放，会员歌曲返回试听
@@ -1114,6 +1243,8 @@ pip install pycloudmusic163
 > **参数说明:**
 >
 > 参数参考`music.music_download`
+>
+>  
 >
 > 
 >
@@ -1154,6 +1285,8 @@ pip install pycloudmusic163
 > playlist.music_list
 > ```
 >
+>  
+>
 > 
 >
 > `playlist.add(music_id)`  向 playlist 对像添加歌曲
@@ -1164,6 +1297,8 @@ pip install pycloudmusic163
 >
 > 成功返回0，失败返回错误码
 >
+>  
+>
 > 
 >
 > `playlist.del_(self, music_id)`  向 playlist 对像删除歌曲
@@ -1173,6 +1308,8 @@ pip install pycloudmusic163
 > music_id：歌曲 id 支持多歌曲 id (使用列表)
 >
 > 成功返回0，对像剩余歌曲数，失败返回错误码
+>
+>  
 >
 > 
 >
@@ -1185,6 +1322,8 @@ pip install pycloudmusic163
 > music_id：一页获得数量
 >
 > 成功返回数据，失败返回错误码
+>
+>  
 >
 > 
 >
@@ -1214,7 +1353,9 @@ pip install pycloudmusic163
 > artist.cover
 > ```
 >
->   
+>  
+>
+> 
 >
 > `artist.song_top()` 获取该对像热门50首 保存至self.music_list
 >
@@ -1232,6 +1373,8 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > `artist.album(page=0, limit=30)`  获取该对像专辑
 >
 > **参数说明:**
@@ -1241,6 +1384,8 @@ pip install pycloudmusic163
 > limit：一页获取数量
 >
 > 成功返回数据, 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -1261,9 +1406,13 @@ pip install pycloudmusic163
 > album.cover
 > ```
 >
+>  
+>
 > 
 >
 > `album.song()`  获取该对像专辑内容 保存至self.music_list (初始化 album 对象时会调用一次)
+>
+>  
 >
 > 
 >
@@ -1307,11 +1456,15 @@ pip install pycloudmusic163
 > mv.not_download
 > ```
 >
->   
+>  
+>
+> 
 >
 > 获取播放该mv对象指定的视频文件 参数参考`music.music_download`
 >
 > `mv.play(download_path, son_path="", chunk_size=1024, download_callback=None, quality=1080)`
+>
+>  
 >
 > 
 >
@@ -1348,6 +1501,8 @@ pip install pycloudmusic163
 >
 >  
 >
+> 
+>
 > `dj.music(page=0, limit=30, asc=False)` 获取电台节目 保存在self.music_list
 >
 > **参数说明:**
@@ -1359,6 +1514,8 @@ pip install pycloudmusic163
 > asc：False 时间正序 True 时间倒序
 >
 > 成功返回0, 失败返回错误码
+>
+>  
 >
 > 
 >
@@ -1389,6 +1546,8 @@ pip install pycloudmusic163
 > # 电台节目评论量
 > dj_music.comment_count
 > ```
+>
+>  
 >
 > 
 >

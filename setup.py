@@ -10,7 +10,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="pycloudmusic163",
-    version="0.1.0",
+    version="0.1.1",
     description="使用Python快速调用网易云音乐api",
     long_description=long_description,
     long_description_content_type="text/markdown",
