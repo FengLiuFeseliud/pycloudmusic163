@@ -57,13 +57,18 @@ class music163_object(Link):
             "R_MV_5_": (MUSIC163_API + "/api/mv" + ("/sub" if in_ else "/unsub"),
                         {
                             "mvId": self.id,
-                            "mvIds": '["' + self.id + '"]',
+                            "mvIds": '["' + str(self.id) + '"]',
+                        }
+                        ),
+            "A_DJ_1_": (MUSIC163_API + "/api/djradio" + ("/sub" if in_ else "/unsub"),
+                        {
+                            "id": self.id
                         }
                         ),
             "artist": (MUSIC163_API + "/api/artist" + ("/sub" if in_ else "/unsub"),
                        {
                            "artistId": self.id,
-                           "artistIds": '["' + self.id + '"]'
+                           "artistIds": '["' + str(self.id) + '"]'
                        }
                        )
         }
@@ -240,12 +245,12 @@ class list_fun:
         self.data_len_ = None
 
     def __iter__(self):
-        self.data_len_ = len(self.music_list) if self.music_list is not None else 1
+        self.data_len_ = len(self.music_list) if self.music_list is not None else 0
         self.index = 0
         return self
 
     def __next__(self):
-        if self.index == self.data_len_ - 1:
+        if self.index == self.data_len_:
             raise StopIteration
 
         data = self.music_list[self.index]
@@ -299,7 +304,7 @@ class music_in(music163_object):
 
 
 # 用户 user对象
-class user(Link, list_fun):
+class user(Link):
 
     def __init__(self, headers, user_data):
         super().__init__(headers)
@@ -324,7 +329,7 @@ class user(Link, list_fun):
 
         :param page:页数
         :param limit:一页获取数量
-        :return:成功返回0 失败返回错误码
+        :return:成功返回 playlist 对象列表，失败返回错误码
         """
         api = MUSIC163_API + "/api/user/playlist"
         post_data = {
@@ -345,16 +350,13 @@ class user(Link, list_fun):
 
     def like_music(self):
         """
-        获取该对象喜欢的歌曲 保存至self.music_list
+        获取该对象喜欢的歌曲
 
-        :return:成功返回0 失败返回错误码
+        :return:成功返回 playlist 对象，失败返回错误码
         """
         like_playlist_id = self._get_like_playlist_id()
         playlist_ = pycloudmusic163.Music163(self.headers).playlist(like_playlist_id)
-        if type(playlist_) == int:
-            return playlist_
-        self.music_list = playlist_.music_list
-        return 0
+        return playlist_ if type(playlist_) == int else playlist_
 
     def record(self, type_=True, music_object=True):
         """
@@ -382,6 +384,7 @@ class user(Link, list_fun):
         """
         关注用户
 
+        :param follow_in:True 时关注，False 取消关注
         :return:成功返回0 失败返回错误码
         """
         api = MUSIC163_API + "/api/user"
@@ -416,16 +419,13 @@ class my(user):
 
     def recommend_playlist(self):
         """
-        获取日推 保存至self.music_list
+        获取日推
 
-        :return:成功返回0 失败返回错误码
+        :return:成功返回数据 失败返回错误码
         """
         api = MUSIC163_API + "/api/v3/discovery/recommend/songs"
         data = self._link(api, mode="POST")
-        if data["code"] != 200:
-            return data["code"]
-        self.music_list = data["data"]["dailySongs"]
-        return 0
+        return data["data"]["dailySongs"] if data["code"] == 200 else data["code"]
 
     def recommend_resource(self):
         """
@@ -439,12 +439,12 @@ class my(user):
 
     def playmode_intelligence(self, music_id, sid=None, playlist_id=None):
         """
-        心动模式/智能播放 保存至self.music_list
+        心动模式/智能播放
 
         :param music_id:歌曲id
         :param sid:可选 要开始播放的歌曲的id
         :param playlist_id:歌单id 默认使用喜欢的歌曲歌单
-        :return:成功返回0 失败返回错误码
+        :return:成功返回数据 失败返回错误码
         """
         if playlist_id is None:
             playlist_id = self._get_like_playlist_id()
@@ -460,10 +460,7 @@ class my(user):
             "count": 1,
         }
         data = self._link(api, data=post_data, mode="POST")
-        if data["code"] != 200:
-            return data["code"]
-        self.music_list = [music_data["songInfo"] for music_data in data["data"]]
-        return 0
+        return [music_data["songInfo"] for music_data in data["data"]] if data["code"] == 200 else data["code"]
 
     def fm(self):
         """
@@ -509,7 +506,7 @@ class my(user):
             return data["djRadios"] if data["code"] == 200 else data["code"]
         
     
-    def artist_sublist(self, page=0, limit=25):
+    def sublist_artist(self, page=0, limit=25):
         """
         查看cookie用户收藏的歌手
 
@@ -520,30 +517,30 @@ class my(user):
         api = MUSIC163_API + "/api/artist/sublist"
         return self.__sublist(page, limit, api)
 
-    def album_sublist(self, page=0, limit=25):
+    def sublist_album(self, page=0, limit=25):
         """
-        查看cookie用户收藏的专辑 (参数参考artist_sublist())
+        查看cookie用户收藏的专辑 (参数参考sublist_artist())
         """
         api = MUSIC163_API + "/api/album/sublist"
         return self.__sublist(page, limit, api)
 
-    def dj_sublist(self, page=0, limit=25):
+    def sublist_dj(self, page=0, limit=25):
         """
-        查看cookie用户收藏的电台 (参数参考artist_sublist())
+        查看cookie用户收藏的电台 (参数参考sublist_artist())
         """
         api = MUSIC163_API + "/api/djradio/get/subed"
         return self.__sublist(page, limit, api)
     
-    def mv_sublist(self, page=0, limit=25):
+    def sublist_mv(self, page=0, limit=25):
         """
-        查看cookie用户收藏的MV (参数参考artist_sublist())
+        查看cookie用户收藏的MV (参数参考sublist_artist())
         """
         api = MUSIC163_API + "/api/cloudvideo/allvideo/sublist"
         return self.__sublist(page, limit, api)
     
-    def topic_sublist(self, page=0, limit=50):
+    def sublist_topic(self, page=0, limit=50):
         """
-        查看cookie用户收藏的专题 (参数参考artist_sublist())
+        查看cookie用户收藏的专题 (参数参考sublist_artist())
         """
         api = MUSIC163_API + "/api/topic/sublist"
         return self.__sublist(page, limit, api)
@@ -706,8 +703,12 @@ class message(Link):
 # 动态 event对象
 class event(Link, list_fun):
 
+    def __init__(self, headers):
+        super().__init__(headers)
+        self.event()
+
     def __next__(self):
-        if self.index == self.data_len_ - 1:
+        if self.index == self.data_len_:
             raise StopIteration
 
         data = self.music_list[self.index]
@@ -715,6 +716,13 @@ class event(Link, list_fun):
         return _event(self.headers, data)
 
     def event(self, last_time=-1, limit=30):
+        """
+        获取下一页动态 保存至self.music_list
+
+        :param last_time:传入上一次返回结果的 time,将会返回下一页的数据
+        :param limit:一页获取量
+        :return:成功返回0 失败返回错误码
+        """
         api = MUSIC163_API + "/api/v1/event/get"
         post_data = {
             "pagesize": limit, "lasttime": last_time
@@ -728,11 +736,11 @@ class event(Link, list_fun):
 
     def user_event(self, user_id, last_time=-1, limit=30):
         """
-        获取指导用户动态
+        获取指定用户动态 保存至self.music_list
         :param user_id:用户id
         :param last_time:传入上一次返回结果的 time,将会返回下一页的数据
         :param limit:一页获取量
-        :return:成功返回数据 失败返回错误码
+        :return:成功返回0 失败返回错误码
         """
         api = MUSIC163_API + "/api/event/get"
         post_data = {
@@ -867,9 +875,6 @@ class _event(music163_object, comment):
 # 私人fm fm对象
 class fm(Link):
 
-    def __init__(self, headers):
-        super().__init__(headers)
-
     def read(self):
         """
         获取fm歌曲
@@ -910,7 +915,7 @@ class cloud(Link):
         self.music_list = cloud_data["data"]
 
     def __iter__(self):
-        self.data_len_ = len(self.music_list) if self.music_list != [] else 1
+        self.data_len_ = len(self.music_list) if self.music_list != [] else 0
         self.index = 0
         return self
 
@@ -1161,7 +1166,7 @@ class playlist(music163_object, comment, list_fun):
 
         :param page:页数
         :param music_id:一页获得数量
-        :return:成功返回0, 失败返回错误码
+        :return:成功返回数据, 失败返回错误码
         """
         api = MUSIC163_API + "/api/playlist/subscribers"
         post_data = {
@@ -1177,8 +1182,11 @@ class album(music163_object, list_fun):
     def __init__(self, headers, album_data):
         super().__init__(headers)
         self.data_type = self.data_type[3]
+        # 专辑id
         self.id = album_data["id"]
+        # 专辑标题
         self.name = album_data["name"]
+        # 专辑封面
         self.cover = album_data['picUrl']
         # 初始化专辑内容
         self.song()
@@ -1328,7 +1336,7 @@ class music(music_in, comment):
 
     def mv(self):
         """
-        获取该对像mv实例化mv对像 并返回album对像
+        获取该对像mv实例化mv对像 并返回mv对像
 
         :return:返回mv对像
         """
@@ -1402,19 +1410,27 @@ class mv(music163_object, comment):
         return 0
 
 
-# 电台歌曲 dj_music对象
+# 电台节目 dj_music对象
 class dj_music(music_in, comment):
 
     def __init__(self, headers, dj_music_data):
         super().__init__(headers)
         self.data_type = self.data_type[4]
+        # 电台节目id
         self.id = dj_music_data["id"]
+        # 电台节目标题
         self.name = dj_music_data["name"]
+        # 电台节目简介
         self.description = dj_music_data["description"]
+        # 电台节目封面
         self.cover = dj_music_data["coverUrl"]
+        # 电台节目创建时间
         self.create_time = dj_music_data["createTime"]
+        # 电台节目播放量
         self.play_count = dj_music_data["listenerCount"]
+        # 电台节目点赞量
         self.like_count = dj_music_data["likedCount"]
+        # 电台节目评论量
         self.comment_count = dj_music_data["commentCount"]
 
 
@@ -1423,6 +1439,7 @@ class dj(music163_object, list_fun):
 
     def __init__(self, headers, dj_data):
         super().__init__(headers)
+        self.data_type = self.data_type[4]
         # 电台标题
         self.name = dj_data["name"]
         # 电台id
@@ -1445,6 +1462,7 @@ class dj(music163_object, list_fun):
         self.music_count = dj_data["programCount"]
         # 电台创建时间
         self.create_time = dj_data["createTime"]
+        self.music()
 
     def __next__(self):
         if self.index == self.data_len_:

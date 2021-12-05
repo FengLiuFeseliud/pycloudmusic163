@@ -140,14 +140,14 @@ class LoginMusic163(Link):
         :param phone:手机号
         :param captcha:验证码
         :param country_code:国家码 (用于国外手机号)
-        :return:api错误返回错误码
+        :return:校验成功返回True 校验失败返回False
         """
         api = MUSIC163_API + "/api/sms/captcha/verify"
         post_data = {
             "cellphone": phone, "captcha": captcha,"countrycode": country_code,
         }
         data = self._link(api, data=post_data, mode="POST")
-        return data if data["code"] == 200 else data["code"]
+        return data['data'] if data["code"] == 200 else False
 
     def check_cellphone(self, phone, country_code="86"):
         """
@@ -302,7 +302,7 @@ class Music163(Link):
         不推荐这样获取album对像
         """
         album_data = {
-            "id": id_, "name": None, "cover": None
+            "id": id_, "name": None, "picUrl": None
         }
         return album(self.headers, album_data)
 
