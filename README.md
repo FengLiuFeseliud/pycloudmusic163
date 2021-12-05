@@ -31,8 +31,8 @@ pip install pycloudmusic163
 > # 打印歌单标题 歌单作者 歌单简介
 > print(playlist.name, playlist.user_str, playlist.description)
 > for music in playlist:
-> # 打印歌单每一首歌的标题 歌手
-> print(music.name_str, music.artist_str)
+>     # 打印歌单每一首歌的标题 歌手
+>     print(music.name_str, music.artist_str)
 > ```
 >
 > 二维码登录
@@ -50,10 +50,10 @@ pip install pycloudmusic163
 > print(key)
 > # 轮查二维码 803为登录成功
 > while True:
-> code, music163, cookie = login.login_qr(key)
-> if code == 803:
->   break
-> time.sleep(3)
+>     code, music163, cookie = login.login_qr(key)
+>     if code == 803:
+>       break
+>     time.sleep(3)
 > 
 > # 验证登录成功 打印用户名称 用户签名 用户id
 > my = music163.my()
