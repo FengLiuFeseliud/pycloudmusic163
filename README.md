@@ -8,12 +8,6 @@
 >
 > 
 
-### 安装
-
-```python
-pip install pycloudmusic163
-```
-
 
 
 ### 简单使用
@@ -62,6 +56,7 @@ pip install pycloudmusic163
 > print(my.name, my.signature, my.id)
 > ```
 >
+<<<<<<< HEAD
 
 ***
 
