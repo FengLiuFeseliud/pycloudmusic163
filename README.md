@@ -1,3 +1,15 @@
+# 提示
+
+## 此项目被重构为 pycloudmusic [https://github.com/FengLiuFeseliud/pycloudmusic](https://github.com/FengLiuFeseliud/pycloudmusic)
+
+## pycloudmusic 大量优于此项目
+
+### pycloudmusic 为异步
+
+### pycloudmusic 有极高的性能
+
+### pycloudmusic 有更清晰明了的源码与文档
+
 # pycloudmusic163
 
 ​		使用 Python 快速调用网易云音乐 api
